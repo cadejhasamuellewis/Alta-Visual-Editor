@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern PDF Editor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf. js/3.11.174/pdf.min.js"></script>
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background:  #f5f5f7;
+            overflow-x: hidden;
+        }
+
+        /* Apple-style Toolbar */
+        .toolbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom:  1px solid rgba(0, 0, 0, 0.05);
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            box-shadow: 0 2px 16px rgba(0, 0, 0, 0.04);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        . toolbar-title {
+            font-size:  17px;
+            font-weight:  600;
+            color: #1d1d1f;
+            margin-right: auto;
+        }
+
+        .tool-btn {
+            background: white;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #1d1d1f;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow:  0 1px 3px rgba(0, 0, 0, 0.04);
+        }
+
+        .tool-btn:hover {
+            background: #f5f5f7;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .tool-btn. active {
+            background: #007aff;
+            color: white;
+            border-color: #007aff;
+        }
+
+        .tool-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-primary-custom {
+            background: #007aff;
+            color: white;
+            border:  none;
+        }
+
+        .btn-primary-custom:hover {
+            background:  #0051d5;
+        }
+
+        .btn-danger-custom {
+            background: #ff3b30;
+            color: white;
+            border: none;
+        }
+
+        .btn-danger-custom:hover {
+            background:  #d62f24;
+        }
+
+        /* Canvas Container */
+        .canvas-container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 24px;
+        }
+
+        . pdf-canvas-wrapper {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+            padding: 40px;
+            position: relative;
+            display: inline-block;
+        }
+
+        #pdf-canvas {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+        }
+
+        #overlay-canvas {
+            position: absolute;
+            top: 40px;
+            left: 40px;
+            cursor: crosshair;
+            pointer-events: none;
+        }
+
+        #overlay-canvas.active {
+            pointer-events: all;
+        }
+
+        /* Text Input Overlay */
+        .text-input-overlay {
+            position: absolute;
+            border: 2px solid #007aff;
+            background: white;
+            padding: 4px;
+            border-radius: 4px;
+            box-shadow: 0 2px 12px rgba(0, 122, 255, 0.3);
+            z-index: 100;
+        }
+
+        .text-input-overlay input {
+            border: none;
+            outline: none;
+            font-family: 'Courier New', monospace;
+            padding: 2px;
+            background: transparent;
+        }
+
+        .text-input-overlay .controls {
+            display: flex;
+            gap: 4px;
+            margin-top: 4px;
+        }
+
+        . text-input-overlay button {
+            padding: 4px 12px;
+            border-radius: 4px;
+            border: none;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        /* File Upload Area */
+        .upload-area {
+            max-width: 600px;
+            margin: 100px auto;
+            text-align: center;
+            padding: 60px 40px;
+            background: white;
+            border-radius: 16px;
+            border: 2px dashed rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+        }
+
+        . upload-area:hover {
+            border-color: #007aff;
+            background: rgba(0, 122, 255, 0.02);
+        }
+
+        .upload-area h2 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #1d1d1f;
+            margin-bottom:  12px;
+        }
+
+        . upload-area p {
+            color: #86868b;
+            font-size:  15px;
+        }
+
+        .hidden {
+            display: none ! important;
+        }
+
+        /* Page Navigation */
+        .page-nav {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .page-nav button {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+
+        .page-info {
+            font-size: 14px;
+            color: #86868b;
+            min-width: 80px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <div class="toolbar-title">PDF Editor</div>
+        
+        <input type="file" id="file-input" accept="application/pdf" class="hidden">
+        <button class="tool-btn btn-primary-custom" onclick="document.getElementById('file-input').click()">
+            📄 Open PDF
+        </button>
+
+        <div class="page-nav hidden" id="page-nav">
+            <button class="tool-btn" id="prev-page" onclick="changePage(-1)">◀</button>
+            <span class="page-info" id="page-info">Page 1 of 1</span>
+            <button class="tool-btn" id="next-page" onclick="changePage(1)">▶</button>
+        </div>
+
+        <button class="tool-btn" id="edit-btn" onclick="toggleEditMode()" disabled>
+            ✏️ Edit Text
+        </button>
+
+        <button class="tool-btn" id="erase-btn" onclick="toggleEraseMode()" disabled>
+            🗑️ Erase
+        </button>
+
+        <button class="tool-btn btn-primary-custom" id="save-btn" onclick="savePDF()" disabled>
+            💾 Save PDF
+        </button>
+    </div>
+
+    <!-- Upload Area -->
+    <div class="upload-area" id="upload-area" onclick="document.getElementById('file-input').click()">
+        <h2>📄 Open Your PDF</h2>
+        <p>Click here or drag a PDF file to start editing</p>
+    </div>
+
+    <!-- Canvas Container -->
+    <div class="canvas-container hidden" id="canvas-container">
+        <div class="pdf-canvas-wrapper" id="canvas-wrapper">
+            <canvas id="pdf-canvas"></canvas>
+            <canvas id="overlay-canvas"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // Global State
+        let pdfDoc = null;
+        let pdfLibDoc = null;
+        let currentPage = 1;
+        let totalPages = 0;
+        let pdfBytes = null;
+        let editMode = false;
+        let eraseMode = false;
+        let modifications = [];
+        let scale = 1.5;
+        let isSelecting = false;
+        let startX, startY;
+
+        const canvas = document.getElementById('pdf-canvas');
+        const overlayCanvas = document.getElementById('overlay-canvas');
+        const ctx = canvas.getContext('2d');
+        const overlayCtx = overlayCanvas. getContext('2d');
+
+        // PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // File Input Handler
+        document.getElementById('file-input').addEventListener('change', handleFileSelect);
+
+        async function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file || file.type !== 'application/pdf') {
+                alert('Please select a valid PDF file');
+                return;
+            }
+
+            const arrayBuffer = await file.arrayBuffer();
+            pdfBytes = new Uint8Array(arrayBuffer);
+            
+            // Load with PDF.js for rendering
+            const loadingTask = pdfjsLib.getDocument({data: pdfBytes});
+            pdfDoc = await loadingTask. promise;
+            totalPages = pdfDoc.numPages;
+
+            // Load with PDF-Lib for editing
+            pdfLibDoc = await PDFLib.PDFDocument.load(pdfBytes);
+
+            // Update UI
+            document.getElementById('upload-area').classList.add('hidden');
+            document.getElementById('canvas-container').classList.remove('hidden');
+            document.getElementById('page-nav').classList.remove('hidden');
+            document.getElementById('edit-btn').disabled = false;
+            document.getElementById('erase-btn').disabled = false;
+            document.getElementById('save-btn').disabled = false;
+
+            modifications = [];
+            currentPage = 1;
+            renderPage(currentPage);
+        }
+
+        async function renderPage(pageNum) {
+            const page = await pdfDoc.getPage(pageNum);
+            const viewport = page.getViewport({scale: scale});
+
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            overlayCanvas.width = viewport.width;
+            overlayCanvas.height = viewport.height;
+
+            // Render PDF page
+            await page.render({
+                canvasContext: ctx,
+                viewport:  viewport
+            }).promise;
+
+            // Render modifications
+            renderModifications();
+
+            // Update page info
+            document.getElementById('page-info').textContent = `Page ${pageNum} of ${totalPages}`;
+            document.getElementById('prev-page').disabled = pageNum <= 1;
+            document.getElementById('next-page').disabled = pageNum >= totalPages;
+        }
+
+        function renderModifications() {
+            overlayCtx.clearRect(0, 0, overlayCanvas. width, overlayCanvas.height);
+            
+            const pageMods = modifications.filter(m => m.page === currentPage);
+            
+            pageMods.forEach(mod => {
+                if (mod.type === 'whiteout') {
+                    overlayCtx.fillStyle = 'white';
+                    overlayCtx.fillRect(mod.x, mod.y, mod.width, mod.height);
+                } else if (mod.type === 'text') {
+                    overlayCtx.fillStyle = 'white';
+                    overlayCtx.fillRect(mod.x, mod.y, mod.width, mod.height);
+                    
+                    overlayCtx.fillStyle = 'black';
+                    overlayCtx.font = `${mod.fontSize}px ${mod.fontFamily}`;
+                    overlayCtx.fillText(mod.text, mod. x + 4, mod.y + mod.fontSize);
+                } else if (mod.type === 'erase') {
+                    overlayCtx.fillStyle = 'white';
+                    overlayCtx.fillRect(mod.x, mod.y, mod.width, mod.height);
+                }
+            });
+        }
+
+        function changePage(delta) {
+            const newPage = currentPage + delta;
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentPage = newPage;
+                renderPage(currentPage);
+            }
+        }
+
+        function toggleEditMode() {
+            editMode = !editMode;
+            eraseMode = false;
+            document.getElementById('edit-btn').classList.toggle('active', editMode);
+            document.getElementById('erase-btn').classList.remove('active');
+            overlayCanvas.classList.toggle('active', editMode);
+            overlayCanvas.style.cursor = editMode ? 'crosshair' : 'default';
+        }
+
+        function toggleEraseMode() {
+            eraseMode = !eraseMode;
+            editMode = false;
+            document. getElementById('erase-btn').classList.toggle('active', eraseMode);
+            document.getElementById('edit-btn').classList.remove('active');
+            overlayCanvas.classList.toggle('active', eraseMode);
+            overlayCanvas.style.cursor = eraseMode ? 'crosshair' : 'default';
+        }
+
+        // Mouse Events for Selection
+        overlayCanvas.addEventListener('mousedown', (e) => {
+            if (! editMode && !eraseMode) return;
+
+            const rect = overlayCanvas.getBoundingClientRect();
+            startX = e.clientX - rect.left;
+            startY = e.clientY - rect.top;
+            isSelecting = true;
+        });
+
+        overlayCanvas.addEventListener('mousemove', (e) => {
+            if (!isSelecting) return;
+
+            const rect = overlayCanvas.getBoundingClientRect();
+            const currentX = e.clientX - rect.left;
+            const currentY = e.clientY - rect. top;
+
+            // Draw selection rectangle
+            renderModifications();
+            overlayCtx.strokeStyle = editMode ? '#007aff' : '#ff3b30';
+            overlayCtx.lineWidth = 2;
+            overlayCtx. setLineDash([5, 5]);
+            overlayCtx.strokeRect(startX, startY, currentX - startX, currentY - startY);
+            overlayCtx.setLineDash([]);
+        });
+
+        overlayCanvas. addEventListener('mouseup', (e) => {
+            if (! isSelecting) return;
+
+            const rect = overlayCanvas.getBoundingClientRect();
+            const endX = e.clientX - rect.left;
+            const endY = e.clientY - rect. top;
+
+            const x = Math.min(startX, endX);
+            const y = Math.min(startY, endY);
+            const width = Math.abs(endX - startX);
+            const height = Math.abs(endY - startY);
+
+            if (width > 5 && height > 5) {
+                if (editMode) {
+                    createTextInput(x, y, width, height);
+                } else if (eraseMode) {
+                    addEraseArea(x, y, width, height);
+                }
+            }
+
+            isSelecting = false;
+            renderModifications();
+        });
+
+        function createTextInput(x, y, width, height) {
+            // Add whiteout first
+            modifications.push({
+                type: 'whiteout',
+                page: currentPage,
+                x, y, width, height
+            });
+
+            // Create text input overlay
+            const wrapper = document.getElementById('canvas-wrapper');
+            const inputDiv = document.createElement('div');
+            inputDiv.className = 'text-input-overlay';
+            inputDiv.style.left = `${x + 40}px`;
+            inputDiv.style.top = `${y + 40}px`;
+            inputDiv.style.width = `${width}px`;
+
+            const fontSize = Math.max(12, Math.min(height - 8, 16));
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.style.width = `${width - 8}px`;
+            input.style.fontSize = `${fontSize}px`;
+            input.placeholder = 'Type here...';
+
+            const controls = document.createElement('div');
+            controls.className = 'controls';
+
+            const fontSelect = document.createElement('select');
+            fontSelect.style.fontSize = '11px';
+            fontSelect.style.padding = '4px';
+            fontSelect.style.flex = '1';
+            fontSelect.innerHTML = `
+                <option value="Courier New">Courier</option>
+                <option value="Helvetica">Helvetica</option>
+                <option value="Times New Roman">Times</option>
+            `;
+
+            const saveBtn = document.createElement('button');
+            saveBtn.textContent = '✓';
+            saveBtn.style.background = '#007aff';
+            saveBtn.style.color = 'white';
+            saveBtn. onclick = () => {
+                const text = input.value.trim();
+                if (text) {
+                    modifications.push({
+                        type: 'text',
+                        page: currentPage,
+                        x, y, width, height,
+                        text: text,
+                        fontSize: fontSize,
+                        fontFamily: fontSelect. value
+                    });
+                    renderModifications();
+                }
+                inputDiv.remove();
+            };
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = '✕';
+            cancelBtn.style. background = '#ff3b30';
+            cancelBtn.style.color = 'white';
+            cancelBtn.onclick = () => {
+                // Remove the whiteout if cancelled
+                modifications.pop();
+                renderModifications();
+                inputDiv.remove();
+            };
+
+            controls.appendChild(fontSelect);
+            controls.appendChild(saveBtn);
+            controls.appendChild(cancelBtn);
+            inputDiv.appendChild(input);
+            inputDiv.appendChild(controls);
+            wrapper.appendChild(inputDiv);
+
+            input.focus();
+        }
+
+        function addEraseArea(x, y, width, height) {
+            modifications.push({
+                type: 'erase',
+                page: currentPage,
+                x, y, width, height
+            });
+            renderModifications();
+        }
+
+        async function savePDF() {
+            if (!pdfLibDoc) return;
+
+            try {
+                // Apply all modifications to PDF-Lib document
+                for (let mod of modifications) {
+                    const page = pdfLibDoc.getPages()[mod.page - 1];
+                    const {height:  pageHeight} = page.getSize();
+
+                    // Convert canvas coordinates to PDF coordinates
+                    const pdfX = mod.x / scale;
+                    const pdfY = pageHeight - (mod.y / scale) - (mod.height / scale);
+                    const pdfWidth = mod.width / scale;
+                    const pdfHeight = mod.height / scale;
+
+                    // Draw white rectangle (whiteout/erase)
+                    page.drawRectangle({
+                        x:  pdfX,
+                        y: pdfY,
+                        width: pdfWidth,
+                        height: pdfHeight,
+                        color: PDFLib.rgb(1, 1, 1)
+                    });
+
+                    // Add text if this is a text modification
+                    if (mod.type === 'text') {
+                        const pdfFontSize = mod.fontSize / scale;
+                        let font;
+                        
+                        if (mod.fontFamily. includes('Courier')) {
+                            font = await pdfLibDoc.embedFont(PDFLib.StandardFonts.Courier);
+                        } else if (mod.fontFamily.includes('Times')) {
+                            font = await pdfLibDoc.embedFont(PDFLib.StandardFonts.TimesRoman);
+                        } else {
+                            font = await pdfLibDoc.embedFont(PDFLib.StandardFonts. Helvetica);
+                        }
+
+                        page.drawText(mod.text, {
+                            x: pdfX + 3,
+                            y: pdfY + (pdfHeight / 2) - (pdfFontSize / 3),
+                            size: pdfFontSize,
+                            font: font,
+                            color: PDFLib.rgb(0, 0, 0)
+                        });
+                    }
+                }
+
+                // Save the modified PDF
+                const modifiedPdfBytes = await pdfLibDoc. save();
+                const blob = new Blob([modifiedPdfBytes], {type: 'application/pdf'});
+                const url = URL. createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `edited-pdf-${Date.now()}.pdf`;
+                a.click();
+                
+                URL.revokeObjectURL(url);
+                alert('✅ PDF saved successfully!');
+            } catch (error) {
+                console.error('Error saving PDF:', error);
+                alert('❌ Error saving PDF. Please try again.');
+            }
+        }
+
+        // Drag & Drop Support
+        const uploadArea = document.getElementById('upload-area');
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover']. forEach(eventName => {
+            uploadArea.addEventListener(eventName, () => {
+                uploadArea.style.borderColor = '#007aff';
+                uploadArea.style.background = 'rgba(0, 122, 255, 0.05)';
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, () => {
+                uploadArea.style.borderColor = 'rgba(0, 0, 0, 0.1)';
+                uploadArea.style. background = 'white';
+            });
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const file = files[0];
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items. add(file);
+                document.getElementById('file-input').files = dataTransfer.files;
+                handleFileSelect({target: {files: dataTransfer.files}});
+            }
+        });
+    </script>
+
+</body>
+</html>
