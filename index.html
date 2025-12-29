@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Professional PDF Editor</title>
+    <title>Alta Visual Editor Pro</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -11,179 +11,129 @@
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 
     <style>
-        :root {
-            --primary-color: #2563eb;
-            --secondary-color: #64748b;
-            --danger-color: #ef4444;
-            --success-color: #10b981;
-            --border-color: #e2e8f0;
-            --hover-bg: #f8fafc;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f1f5f9; overflow-x: hidden; }
-
-        /* Toolbar */
-        .main-toolbar {
-            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-            color: white; padding: 0; position: sticky; top: 0; z-index: 2000;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-        }
-        .toolbar-top { display: flex; align-items: center; padding: 12px 24px; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .app-logo { font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 10px; margin-right: 40px; }
-        .toolbar-actions { display: flex; gap: 8px; flex: 1; align-items: center; }
-        .tool-btn {
-            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
-            color: white; padding: 8px 16px; border-radius: 6px; cursor: pointer;
-            display: flex; align-items: center; gap: 8px; font-size: 13px;
-        }
-        .tool-btn:hover { background: rgba(255,255,255,0.2); }
-        .tool-btn.active { background: var(--primary-color); border-color: var(--primary-color); }
-        .btn-primary-custom { background: var(--primary-color); border-color: var(--primary-color); }
+        body { background: #e2e8f0; font-family: 'Segoe UI', sans-serif; height: 100vh; overflow: hidden; }
         
-        /* Properties Panel */
-        .properties-panel { background: white; padding: 12px 24px; display: none; align-items: center; gap: 20px; border-bottom: 1px solid var(--border-color); }
-        .properties-panel.active { display: flex; }
-
-        /* Upload Area */
-        .upload-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #f1f5f9; z-index: 1000; display: flex; align-items: center; justify-content: center; }
-        .upload-box { background: white; padding: 60px; border-radius: 16px; text-align: center; max-width: 600px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.1); }
-        .upload-area { border: 3px dashed var(--border-color); border-radius: 12px; padding: 40px; cursor: pointer; transition: all 0.3s; }
-        .upload-area:hover { border-color: var(--primary-color); background: rgba(37, 99, 235, 0.05); }
+        /* TOOLBAR */
+        .toolbar {
+            background: #1e293b; color: white; padding: 10px 20px;
+            display: flex; align-items: center; justify-content: space-between;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2); z-index: 100; position: relative;
+        }
+        .btn-tool {
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white;
+            padding: 8px 15px; border-radius: 6px; margin-right: 8px; cursor: pointer;
+        }
+        .btn-tool:hover { background: rgba(255,255,255,0.2); }
+        .btn-tool.active { background: #3b82f6; border-color: #3b82f6; }
         
-        /* Canvas */
-        .main-content { display: flex; height: calc(100vh - 120px); }
-        .canvas-area { flex: 1; overflow: auto; padding: 40px; background: #f8fafc; text-align: center; }
-        .pdf-viewer { display: inline-block; position: relative; box-shadow: 0 10px 40px rgba(0,0,0,0.1); }
-        #interaction-layer { position: absolute; top: 0; left: 0; cursor: crosshair; }
+        .btn-action { background: #10b981; color: white; border: none; padding: 8px 20px; border-radius: 6px; }
+        
+        /* CANVAS AREA */
+        #editor-container {
+            position: relative; overflow: auto; height: calc(100vh - 60px);
+            background: #94a3b8; display: flex; justify-content: center; padding: 40px;
+        }
+        #pdf-wrapper { position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        
+        /* FLOATING INPUT BOX (Draggable) */
+        .floating-input {
+            position: absolute; background: white; border: 2px dashed #3b82f6;
+            padding: 5px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 1000;
+            cursor: move; display: flex; gap: 5px; align-items: center;
+        }
+        .floating-input input { border: none; outline: none; font-family: 'Courier', monospace; font-size: 14px; width: 150px; }
+        .btn-mini { padding: 4px 8px; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 12px; }
+        .btn-ok { background: #10b981; }
+        .btn-cancel { background: #ef4444; }
 
-        /* Hidden helpers */
-        .hidden { display: none !important; }
-        .loading-spinner { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 3000; display: none; align-items: center; justify-content: center; color: white; flex-direction: column; }
-        .loading-spinner.active { display: flex; }
     </style>
 </head>
 <body>
 
-    <div class="loading-spinner" id="loading-spinner">
-        <h3>Processing PDF...</h3>
-    </div>
+    <div class="toolbar">
+        <div style="display:flex; align-items:center; gap: 15px;">
+            <strong><i class="fas fa-edit"></i> Alta Editor</strong>
+            
+            <button class="btn-tool" onclick="document.getElementById('file-input').click()">
+                <i class="fas fa-folder-open"></i> Open
+            </button>
+            <input type="file" id="file-input" accept="application/pdf" style="display:none">
 
-    <div class="main-toolbar">
-        <div class="toolbar-top">
-            <div class="app-logo"><i class="fas fa-file-pdf"></i> PDF Editor Pro</div>
-            <div class="toolbar-actions">
-                <input type="file" id="file-input" accept="application/pdf" class="hidden">
-                <button class="tool-btn btn-primary-custom" onclick="document.getElementById('file-input').click()">
-                    <i class="fas fa-folder-open"></i> Open PDF
-                </button>
-                <button class="tool-btn btn-success" onclick="savePDF()">
-                    <i class="fas fa-download"></i> Save PDF
-                </button>
-                <div style="width: 1px; height: 24px; background: rgba(255,255,255,0.2); margin: 0 10px;"></div>
-                <button class="tool-btn active" id="btn-edit" onclick="setTool('edit')">
-                    <i class="fas fa-font"></i> Text Tool
-                </button>
-                <button class="tool-btn" id="btn-erase" onclick="setTool('erase')">
-                    <i class="fas fa-eraser"></i> Whiteout
-                </button>
-            </div>
+            <div style="width:1px; height:20px; background:rgba(255,255,255,0.3);"></div>
+
+            <button class="btn-tool active" id="btn-text" onclick="setTool('text')">
+                <i class="fas fa-font"></i> Text Tool
+            </button>
+            <button class="btn-tool" id="btn-whiteout" onclick="setTool('whiteout')">
+                <i class="fas fa-eraser"></i> Whiteout (Delete)
+            </button>
+
+            <button class="btn-tool" onclick="undo()">
+                <i class="fas fa-undo"></i> Undo
+            </button>
         </div>
-        
-        <div class="properties-panel" id="properties-panel">
-            <select id="font-family" class="form-select" style="width: 150px;">
-                <option value="Courier">Courier (Bank)</option>
-                <option value="Helvetica">Helvetica</option>
-                <option value="Times-Roman">Times New Roman</option>
+
+        <div style="display:flex; align-items:center; gap: 10px;">
+            <select id="font-select" style="padding: 5px; border-radius: 4px;">
+                <option value="Courier">Bank Font (Courier)</option>
+                <option value="Helvetica">Standard (Arial)</option>
             </select>
-            <input type="number" id="font-size" value="12" class="form-control" style="width: 80px;" title="Font Size">
+            <input type="number" id="font-size" value="12" style="width: 50px; padding: 5px; border-radius: 4px;">
+            <button class="btn-action" onclick="savePDF()">Save & Download</button>
         </div>
     </div>
 
-    <div class="upload-overlay" id="upload-overlay">
-        <div class="upload-box">
-            <div class="upload-area" onclick="document.getElementById('file-input').click()">
-                <i class="fas fa-cloud-upload-alt" style="font-size: 48px; color: var(--primary-color); margin-bottom: 20px;"></i>
-                <h2>Click to Upload PDF</h2>
-                <p class="text-muted">or drag and drop file here</p>
-            </div>
-        </div>
-    </div>
-
-    <div class="main-content hidden" id="main-content">
-        <div class="canvas-area">
-            <div class="pdf-viewer">
-                <canvas id="pdf-canvas"></canvas>
-                <canvas id="interaction-layer"></canvas>
-            </div>
+    <div id="editor-container">
+        <div id="pdf-wrapper">
+            <canvas id="pdf-canvas"></canvas>
+            <canvas id="interaction-layer" style="position:absolute; top:0; left:0;"></canvas>
         </div>
     </div>
 
     <script>
-        // --- 1. CONFIGURATION (FIXED URL) ---
-        // This is the line that was broken. The space is now removed.
+        // CONFIG
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-        // --- 2. STATE ---
+        // STATE
         let pdfDoc = null;
         let pdfBytes = null;
         let scale = 1.5;
-        let currentPage = 1;
-        let currentTool = 'edit'; // 'edit' (text) or 'erase' (whiteout)
-        let modifications = []; // Stores all your changes
-
+        let currentTool = 'text';
+        let modifications = [];
+        
+        // DOM ELEMENTS
         const canvas = document.getElementById('pdf-canvas');
         const ctx = canvas.getContext('2d');
         const layer = document.getElementById('interaction-layer');
         const layerCtx = layer.getContext('2d');
+        const wrapper = document.getElementById('pdf-wrapper');
 
-        // --- 3. FILE HANDLING ---
+        // 1. UPLOAD
         document.getElementById('file-input').addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
-
-            document.getElementById('loading-spinner').classList.add('active');
-            
-            try {
-                // Read File
-                pdfBytes = await file.arrayBuffer();
-                
-                // Load PDF
-                pdfDoc = await pdfjsLib.getDocument({data: pdfBytes}).promise;
-                
-                // Show Editor
-                document.getElementById('upload-overlay').classList.add('hidden');
-                document.getElementById('main-content').classList.remove('hidden');
-                document.getElementById('properties-panel').classList.add('active');
-                
-                // Render Page 1
-                await renderPage(1);
-            } catch (err) {
-                alert("Error loading PDF: " + err.message);
-            }
-            
-            document.getElementById('loading-spinner').classList.remove('active');
+            pdfBytes = await file.arrayBuffer();
+            pdfDoc = await pdfjsLib.getDocument({data: pdfBytes}).promise;
+            renderPage(1);
         });
 
-        // --- 4. RENDERING ---
+        // 2. RENDER
         async function renderPage(num) {
             const page = await pdfDoc.getPage(num);
             const viewport = page.getViewport({scale: scale});
-
-            // Set Dimensions
+            
             canvas.width = viewport.width;
             canvas.height = viewport.height;
             layer.width = viewport.width;
             layer.height = viewport.height;
+            wrapper.style.width = `${viewport.width}px`;
+            wrapper.style.height = `${viewport.height}px`;
 
-            // Draw PDF
             await page.render({canvasContext: ctx, viewport: viewport}).promise;
-            
-            // Redraw any existing modifications (if you switched pages)
-            redrawModifications();
+            redraw();
         }
 
-        // --- 5. INTERACTION (CLICK & DRAG) ---
+        // 3. INTERACTION
         let isDrawing = false;
         let startX, startY;
 
@@ -191,128 +141,180 @@
             const rect = layer.getBoundingClientRect();
             startX = e.clientX - rect.left;
             startY = e.clientY - rect.top;
-            isDrawing = true;
+
+            if (currentTool === 'whiteout') {
+                isDrawing = true;
+            } else if (currentTool === 'text') {
+                createFloatingInput(startX, startY);
+            }
+        });
+
+        layer.addEventListener('mousemove', e => {
+            if (!isDrawing) return;
+            const rect = layer.getBoundingClientRect();
+            const currentX = e.clientX - rect.left;
+            const currentY = e.clientY - rect.top;
+            
+            redraw(); // Clear and redraw old mods
+            // Draw current drag box (preview)
+            layerCtx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            layerCtx.fillRect(startX, startY, currentX - startX, currentY - startY);
+            layerCtx.strokeStyle = 'red';
+            layerCtx.strokeRect(startX, startY, currentX - startX, currentY - startY);
         });
 
         layer.addEventListener('mouseup', e => {
             if (!isDrawing) return;
             isDrawing = false;
-
             const rect = layer.getBoundingClientRect();
             const endX = e.clientX - rect.left;
             const endY = e.clientY - rect.top;
 
-            const width = Math.abs(endX - startX);
-            const height = Math.abs(endY - startY);
-            const x = Math.min(startX, endX);
-            const y = Math.min(startY, endY);
-
-            // If click (not drag), treat as small box
-            if (width < 5 || height < 5) {
-                if (currentTool === 'edit') createTextInput(x, y, 200, 20);
-                return;
-            }
-
-            // If drag, apply tool
-            if (currentTool === 'erase') {
-                addModification({ type: 'whiteout', x, y, width, height });
-            } else {
-                createTextInput(x, y, width, height);
-            }
+            modifications.push({
+                type: 'whiteout',
+                x: Math.min(startX, endX),
+                y: Math.min(startY, endY),
+                width: Math.abs(endX - startX),
+                height: Math.abs(endY - startY)
+            });
+            redraw();
         });
 
-        // --- 6. TOOLS ---
-        function setTool(tool) {
-            currentTool = tool;
-            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('btn-' + tool).classList.add('active');
-            layer.style.cursor = tool === 'erase' ? 'crosshair' : 'text';
-        }
+        // 4. FLOATING INPUT (THE DRAG FEATURE)
+        function createFloatingInput(x, y) {
+            // Remove any existing inputs
+            const existing = document.querySelector('.floating-input');
+            if (existing) existing.remove();
 
-        function createTextInput(x, y, w, h) {
-            const text = prompt("Enter text to replace/add:");
-            if (text) {
-                // Auto-whiteout behind text to hide old text
-                addModification({ type: 'whiteout', x, y, width: w, height: h > 20 ? h : 20 });
-                
-                // Add new text
-                addModification({
-                    type: 'text', x, y: y + 14, // Adjust for baseline
-                    text: text,
-                    font: document.getElementById('font-family').value,
+            const div = document.createElement('div');
+            div.className = 'floating-input';
+            div.style.left = x + 'px';
+            div.style.top = y + 'px';
+
+            const input = document.createElement('input');
+            input.placeholder = "Type here...";
+            input.style.fontFamily = document.getElementById('font-select').value;
+            input.style.fontSize = document.getElementById('font-size').value + 'px';
+            
+            // Auto-focus logic
+            setTimeout(() => input.focus(), 50);
+
+            // DRAGGABLE LOGIC FOR THE BOX
+            let isDragging = false;
+            let dragOffsetX, dragOffsetY;
+
+            div.addEventListener('mousedown', (e) => {
+                if(e.target !== input && e.target.tagName !== 'BUTTON') {
+                    isDragging = true;
+                    dragOffsetX = e.clientX - div.offsetLeft;
+                    dragOffsetY = e.clientY - div.offsetTop;
+                }
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    div.style.left = (e.clientX - dragOffsetX) + 'px';
+                    div.style.top = (e.clientY - dragOffsetY) + 'px';
+                }
+            });
+
+            document.addEventListener('mouseup', () => isDragging = false);
+
+            // OK / CANCEL
+            const btnOk = document.createElement('button');
+            btnOk.className = 'btn-mini btn-ok';
+            btnOk.innerHTML = '✔';
+            btnOk.onclick = () => {
+                const rect = wrapper.getBoundingClientRect(); // Get wrapper offset
+                // Calculate position relative to canvas
+                const finalX = div.offsetLeft;
+                const finalY = div.offsetTop + 10; // Adjust for baseline roughly
+
+                modifications.push({
+                    type: 'text',
+                    text: input.value,
+                    x: finalX,
+                    y: finalY,
+                    font: document.getElementById('font-select').value,
                     size: parseInt(document.getElementById('font-size').value)
                 });
-            }
+                redraw();
+                div.remove();
+            };
+
+            const btnCancel = document.createElement('button');
+            btnCancel.className = 'btn-mini btn-cancel';
+            btnCancel.innerHTML = '✖';
+            btnCancel.onclick = () => div.remove();
+
+            div.appendChild(input);
+            div.appendChild(btnOk);
+            div.appendChild(btnCancel);
+            wrapper.appendChild(div);
         }
 
-        function addModification(mod) {
-            modifications.push(mod);
-            redrawModifications();
+        // 5. CORE LOGIC
+        function setTool(t) {
+            currentTool = t;
+            document.querySelectorAll('.btn-tool').forEach(b => b.classList.remove('active'));
+            document.getElementById('btn-' + t).classList.add('active');
         }
 
-        function redrawModifications() {
+        function undo() {
+            modifications.pop();
+            redraw();
+        }
+
+        function redraw() {
             layerCtx.clearRect(0, 0, layer.width, layer.height);
-            
             modifications.forEach(mod => {
                 if (mod.type === 'whiteout') {
                     layerCtx.fillStyle = 'white';
                     layerCtx.fillRect(mod.x, mod.y, mod.width, mod.height);
                 } else if (mod.type === 'text') {
-                    layerCtx.font = `${mod.size}px ${mod.font}`;
+                    layerCtx.font = `${mod.size}px ${mod.font === 'Courier' ? 'Courier New' : 'Helvetica'}`;
                     layerCtx.fillStyle = 'black';
                     layerCtx.fillText(mod.text, mod.x, mod.y);
                 }
             });
         }
 
-        // --- 7. SAVING ---
+        // 6. SAVE
         async function savePDF() {
             if (!pdfBytes) return;
             const { PDFDocument, rgb, StandardFonts } = PDFLib;
-
             const pdfDoc = await PDFDocument.load(pdfBytes);
-            const page = pdfDoc.getPages()[0]; // Editing page 1 for now
+            const page = pdfDoc.getPages()[0];
             const { height } = page.getSize();
-
-            // Embed Fonts
+            
             const courier = await pdfDoc.embedFont(StandardFonts.Courier);
             const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
-            const times = await pdfDoc.embedFont(StandardFonts.TimesRoman);
 
             modifications.forEach(mod => {
-                // Convert Canvas coords to PDF coords (PDF starts from bottom-left)
-                // Note: We need to account for scale
                 const pdfX = mod.x / scale;
-                const pdfY = height - (mod.y / scale); 
+                const pdfY = height - (mod.y / scale);
 
                 if (mod.type === 'whiteout') {
                     page.drawRectangle({
-                        x: pdfX,
-                        y: pdfY - (mod.height / scale),
-                        width: mod.width / scale,
-                        height: mod.height / scale,
-                        color: rgb(1, 1, 1)
+                        x: pdfX, y: pdfY - (mod.height/scale),
+                        width: mod.width/scale, height: mod.height/scale,
+                        color: rgb(1,1,1)
                     });
                 } else if (mod.type === 'text') {
-                    let font = helvetica;
-                    if (mod.font === 'Courier') font = courier;
-                    if (mod.font === 'Times-Roman') font = times;
-
                     page.drawText(mod.text, {
-                        x: pdfX,
-                        y: pdfY, // Text aligns differently, trial/error might be needed
-                        size: mod.size / scale,
-                        font: font,
-                        color: rgb(0, 0, 0)
+                        x: pdfX, y: pdfY - (mod.size/scale), // slight baseline adjust
+                        size: mod.size/scale,
+                        font: mod.font === 'Courier' ? courier : helvetica,
+                        color: rgb(0,0,0)
                     });
                 }
             });
 
-            const pdfData = await pdfDoc.save();
-            const blob = new Blob([pdfData], { type: 'application/pdf' });
+            const data = await pdfDoc.save();
+            const blob = new Blob([data], {type: 'application/pdf'});
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.download = 'edited_document.pdf';
+            link.download = 'fixed_document.pdf';
             link.click();
         }
     </script>
