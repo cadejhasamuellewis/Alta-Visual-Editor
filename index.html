@@ -12,756 +12,550 @@
   <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet" />
 
-  <!-- PDF.js / PDF-Lib -->
+  <!-- PDF.js / PDF-Lib (compatible versions) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 
   <style>
     :root {
-      --bg-body: #f5f6f8;
+      --bg-app: #f0f2f5;
       --bg-panel: #ffffff;
-      --border: #e5e7eb;
       --accent: #cceeff;
-      --accent-dark: #8ecae6;
-      --accent-text: #0b5c80;
-      --text-main: #1e293b;
-      --shadow: 0 4px 10px rgba(0,0,0,0.08);
-      --handle: #cceeff;
+      --accent-border: #99d1f2;
+      --accent-active: #0066cc;
+      --border: #e5e7eb;
+      --text: #1f2937;
     }
-    * { box-sizing: border-box; }
+    * { box-sizing: border-box; user-select: none; }
     body {
       margin: 0; font-family: 'Inter', sans-serif;
-      background: var(--bg-body); color: var(--text-main);
-      display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+      background: var(--bg-app); color: var(--text);
+      height: 100vh; display: flex; flex-direction: column; overflow: hidden;
     }
-    /* Toolbar */
-    .toolbar {
-      height: 64px; background: var(--bg-panel); border-bottom: 1px solid var(--border);
-      display: flex; align-items: center; padding: 8px 16px; gap: 12px;
-      box-shadow: var(--shadow); z-index: 100;
+
+    /* Ribbon */
+    .ribbon {
+      background: var(--bg-panel); border-bottom: 1px solid var(--border);
+      height: 96px; display: flex; align-items: stretch; padding: 0 16px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05); z-index: 100; gap: 10px;
     }
-    .group { display: flex; align-items: center; gap: 10px; }
-    .divider { width:1px; height:28px; background: var(--border); margin: 0 6px; }
-    .btn {
-      background: transparent; border: 1px solid transparent; border-radius: 6px;
-      padding: 6px 10px; min-width: 48px; height: 36px;
-      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-      color: #667085; font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s;
+    .brand {
+      display: flex; align-items: center; font-weight: 800; font-size: 20px;
+      color: var(--text); padding-right: 16px; margin-right: 8px; border-right: 1px solid var(--border);
+      gap: 8px;
     }
-    .btn i { font-size: 15px; }
-    .btn:hover { background: #f8fafc; color: var(--accent-text); }
-    .btn.active {
-      background: var(--accent); color: var(--accent-text);
-      border-color: var(--accent-dark); box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+    .group {
+      display: flex; align-items: center; gap: 6px; padding: 10px 0; position: relative;
     }
-    /* Property bar */
-    .prop-bar {
-      height: 52px; background: #fff; border-bottom: 1px solid var(--border);
-      display: flex; align-items: center; padding: 0 16px; gap: 12px;
+    .group::after {
+      content: ''; position: absolute; right: -8px; top: 14px; bottom: 14px;
+      width: 1px; background: var(--border);
     }
+    .group:last-child::after { display: none; }
+
+    .btn-tool {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-width: 56px; height: 72px;
+      border-radius: 6px; border: 1px solid transparent; background: transparent;
+      cursor: pointer; color: #4b5563; gap: 6px; transition: all .12s;
+      font-size: 11px; font-weight: 600;
+    }
+    .btn-tool i { font-size: 18px; }
+    .btn-tool:hover { background: #f8fafc; }
+    .btn-tool.active {
+      background: var(--accent); border-color: var(--accent-border); color: var(--accent-active);
+    }
+    .btn-tool.active i { color: var(--accent-active); }
+
+    .btn-mini {
+      width: 32px; height: 32px; border-radius: 6px; border: 1px solid transparent;
+      background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: all .12s; color: #4b5563;
+    }
+    .btn-mini:hover { background: #f8fafc; border-color: var(--border); }
+    .btn-mini.active { background: var(--accent); border-color: var(--accent-border); color: var(--accent-active); }
+
     select, input[type=number], input[type=color] {
       height: 32px; border: 1px solid var(--border); border-radius: 4px;
-      padding: 0 8px; font-size: 12px; color: #334155; background: #fff;
+      font-size: 12px; padding: 0 8px; color: #334155; background: #fff;
     }
-    input[type=number] { width: 60px; }
-    input[type=color] { width: 36px; padding: 0; border: 1px solid var(--border); }
-    .toggle {
-      width: 32px; height: 32px; border: 1px solid var(--border);
-      border-radius: 4px; background: #fff; cursor: pointer; font-weight: 700;
-      display:flex; align-items:center; justify-content:center;
-    }
-    .toggle.toggled { background: #333; color: #fff; border-color: #111; }
-    .slider-wrap { display:flex; align-items:center; gap:8px; font-size:12px; color:#475569; }
-    .slider-wrap input[type=range]{ width: 120px; }
+    input[type=number] { width: 52px; }
+    input[type=color] { width: 32px; padding: 0; border: 1px solid var(--border); cursor: pointer; }
+
     /* Workspace */
     #workspace {
-      flex: 1; overflow: auto; background: #e2e8f0;
+      flex: 1; background: #525659; overflow: auto;
       display: flex; justify-content: center; padding: 32px; position: relative;
     }
-    #canvas-wrapper {
-      position: relative; background: #fff; box-shadow: 0 10px 20px rgba(0,0,0,0.12);
-      transform-origin: top left;
+    #canvas-wrap {
+      position: relative; background: #fff;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.25); transform-origin: top left;
     }
-    canvas { position: absolute; top:0; left:0; }
-    #pdf-canvas { z-index:1; }
-    #overlay { z-index:2; }
-    /* Inline textarea editor */
-    #text-editor {
+    canvas { position: absolute; top: 0; left: 0; }
+    #pdf-layer { z-index: 1; }
+    #ui-layer { z-index: 2; cursor: crosshair; }
+
+    /* Inline editor */
+    #editor {
       position: absolute; z-index: 30; display: none;
-      background: transparent; border: 1px dashed var(--accent-text);
+      background: transparent; border: 1px dashed #0066cc; outline: none;
       padding: 0; margin: 0; resize: none; overflow: hidden; white-space: pre;
       line-height: 1.1; transform-origin: top left;
     }
-    /* Selection */
-    .selection-box {
-      position: absolute; border: 2px solid var(--accent);
-      background: rgba(204,238,255,0.2); pointer-events: none; z-index: 15;
-    }
-    .handle {
-      position: absolute; width: 10px; height: 10px; background: #fff;
-      border: 2px solid var(--accent-dark); border-radius: 2px; z-index: 16;
-      transform: translate(-50%,-50%); pointer-events: all;
-    }
+
     /* Drop overlay */
-    .drop-overlay {
-      position: fixed; inset:0; background: rgba(255,255,255,0.9);
-      display: none; align-items: center; justify-content: center; flex-direction: column;
-      z-index: 3000; color: var(--accent-text); gap: 8px;
+    #drop-zone {
+      position: fixed; inset: 0; background: rgba(255,255,255,0.96); z-index: 999;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+      color: #334155;
     }
-    .drop-overlay.active { display: flex; }
+    #drop-zone.hidden { display: none; }
+    .upload-btn {
+      padding: 12px 24px; background: var(--accent); border: 1px solid var(--accent-border);
+      border-radius: 8px; font-weight: 700; color: var(--accent-active); cursor: pointer;
+    }
   </style>
 </head>
 <body>
-  <!-- Toolbar -->
-  <div class="toolbar">
-    <div class="group">
-      <strong style="color:#0f172a;">ALTA PRO</strong>
-      <div class="divider"></div>
-      <button class="btn" id="open-btn"><i class="fa-regular fa-folder-open"></i>Open</button>
-      <button class="btn" id="save-btn" disabled><i class="fa-regular fa-floppy-disk"></i>Save</button>
-    </div>
-    <div class="divider"></div>
-    <div class="group">
-      <button class="btn active" data-tool="select"><i class="fa-solid fa-arrow-pointer"></i>Select</button>
-      <div class="divider"></div>
-      <button class="btn" data-tool="text"><i class="fa-solid fa-font"></i>Text</button>
-      <button class="btn" data-tool="whiteout"><i class="fa-solid fa-eraser"></i>Whiteout</button>
-      <button class="btn" data-tool="image"><i class="fa-regular fa-image"></i>Image</button>
-    </div>
-    <div class="divider"></div>
-    <div class="group">
-      <button class="btn" id="delete-btn" title="Delete"><i class="fa-regular fa-trash-can" style="color:#ef4444;"></i></button>
-    </div>
-    <div class="divider"></div>
-    <div class="group">
-      <button class="btn" id="zoom-out"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
-      <span id="zoom-label" style="font-size:12px; color:#475569; min-width:48px; text-align:center;">100%</span>
-      <button class="btn" id="zoom-in"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
-    </div>
-  </div>
 
-  <!-- Property Bar -->
-  <div class="prop-bar">
-    <div class="group" style="gap:8px;">
-      <label style="font-size:11px; color:#94a3b8; font-weight:600;">Font</label>
-      <select id="font-family">
-        <option value="BankCourier">Bank Courier (Courier Prime)</option>
-        <option value="Helvetica">Helvetica</option>
-        <option value="Times">Times New Roman</option>
-      </select>
-      <div class="divider" style="height:20px;"></div>
-      <input type="number" id="font-size" value="12" min="6" max="96" title="Size" />
-      <button class="toggle" id="bold-toggle" title="Bold / Darkness">B</button>
-      <input type="color" id="font-color" value="#000000" title="Color" />
-      <div class="divider" style="height:20px;"></div>
-      <div class="slider-wrap">
-        <span>Letter spacing</span>
-        <input type="range" id="letter-spacing" min="-2" max="10" step="0.1" value="0" />
-        <span id="ls-val" style="width:42px; text-align:right;">0px</span>
-      </div>
-      <div class="slider-wrap">
-        <span>Stretch</span>
-        <input type="range" id="stretch" min="50" max="150" step="1" value="100" />
-        <span id="st-val" style="width:42px; text-align:right;">100%</span>
+  <!-- Ribbon -->
+  <div class="ribbon">
+    <div class="brand"><i class="fa-solid fa-file-contract" style="color:#0066cc;"></i>ALTA</div>
+
+    <!-- Group 1: File -->
+    <div class="group">
+      <button class="btn-tool" id="btn-open"><i class="fa-solid fa-folder-open"></i><span>Open</span></button>
+      <button class="btn-tool" id="btn-save" disabled><i class="fa-solid fa-floppy-disk"></i><span>Save</span></button>
+      <button class="btn-tool" id="btn-print"><i class="fa-solid fa-print"></i><span>Print</span></button>
+    </div>
+
+    <!-- Group 2: Edit -->
+    <div class="group">
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        <div style="display:flex; gap:6px;">
+          <button class="btn-mini" id="btn-undo" title="Undo"><i class="fa-solid fa-rotate-left"></i></button>
+          <button class="btn-mini" id="btn-redo" title="Redo"><i class="fa-solid fa-rotate-right"></i></button>
+          <button class="btn-mini" id="btn-delete" title="Delete"><i class="fa-solid fa-trash" style="color:#ef4444;"></i></button>
+        </div>
       </div>
     </div>
-    <div style="flex:1;"></div>
+
+    <!-- Group 3: Tools -->
+    <div class="group">
+      <button class="btn-tool active" data-tool="select"><i class="fa-solid fa-arrow-pointer"></i><span>Select</span></button>
+      <button class="btn-tool" data-tool="text"><i class="fa-solid fa-font"></i><span>Text</span></button>
+      <button class="btn-tool" data-tool="whiteout"><i class="fa-solid fa-eraser"></i><span>Erase</span></button>
+      <button class="btn-tool" data-tool="image"><i class="fa-regular fa-image"></i><span>Image</span></button>
+    </div>
+
+    <!-- Group 4: Formatting -->
+    <div class="group">
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        <div style="display:flex; gap:6px;">
+          <select id="font-family">
+            <option value="BankCourier">Bank Courier</option>
+            <option value="Helvetica">Helvetica</option>
+            <option value="Times">Times Roman</option>
+          </select>
+          <input type="number" id="font-size" value="12" min="6" max="96">
+          <input type="color" id="font-color" value="#000000">
+          <button class="btn-mini" id="btn-bold" title="Bold / Darkness"><i class="fa-solid fa-bold"></i></button>
+        </div>
+        <div style="display:flex; gap:6px;">
+          <button class="btn-mini" id="align-left" title="Align Left"><i class="fa-solid fa-align-left"></i></button>
+          <button class="btn-mini" id="align-center" title="Align Center"><i class="fa-solid fa-align-center"></i></button>
+          <button class="btn-mini" id="align-right" title="Align Right"><i class="fa-solid fa-align-right"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Group 5: View -->
+    <div class="group" style="margin-left:auto;">
+      <button class="btn-mini" id="zoom-out"><i class="fa-solid fa-minus"></i></button>
+      <span style="font-size:12px; min-width:48px; text-align:center;" id="zoom-val">100%</span>
+      <button class="btn-mini" id="zoom-in"><i class="fa-solid fa-plus"></i></button>
+    </div>
   </div>
 
   <!-- Workspace -->
   <div id="workspace">
-    <div id="canvas-wrapper">
-      <canvas id="pdf-canvas"></canvas>
-      <canvas id="overlay"></canvas>
-      <textarea id="text-editor"></textarea>
-    </div>
-    <div class="drop-overlay" id="drop-overlay">
-      <i class="fa-solid fa-cloud-arrow-up fa-3x"></i>
-      <div>Drop PDF Here</div>
+    <div id="canvas-wrap">
+      <canvas id="pdf-layer"></canvas>
+      <canvas id="ui-layer"></canvas>
+      <textarea id="editor"></textarea>
     </div>
   </div>
 
+  <!-- Drop overlay -->
+  <div id="drop-zone">
+    <i class="fa-solid fa-cloud-arrow-up fa-4x" style="color:#cbd5e1;"></i>
+    <h2 style="margin:6px 0 0 0;">Upload PDF Document</h2>
+    <button class="upload-btn" onclick="document.getElementById('file-in').click()">Browse Files</button>
+  </div>
+
   <!-- Hidden inputs -->
-  <input type="file" id="file-input" accept="application/pdf" style="display:none" />
-  <input type="file" id="img-input" accept="image/png,image/jpeg" style="display:none" />
+  <input type="file" id="file-in" accept="application/pdf" style="display:none">
+  <input type="file" id="img-in" accept="image/*" style="display:none">
 
-  <script>
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-    // State
-    const S = {
-      pdfBytes: null,
-      pdfDoc: null,
-      pdfLibDoc: null,
-      pageNum: 1,
-      scale: 1.0,
-      tool: 'select',
-      objects: [], // {id,type,x,y,w,h,text,font,size,color,ls,stretch,bold,img,imgFile}
-      selected: null,
-      isDragging: false,
-      dragOffset: {x:0,y:0},
-      resizing: null, // handle name
-      newRectStart: null,
-      editing: false,
-      textItems: [], // pdf.js text items for font detection
+const S = {
+  pdf: null, doc: null, bytes: null, page: 1, scale: 1.2,
+  tool: 'select', objs: [], sel: null,
+  isEdit: false, drag: null, resize: null, history: [], hi: -1
+};
+
+// DOM
+const wrap = document.getElementById('canvas-wrap');
+const pdfC = document.getElementById('pdf-layer');
+const uiC  = document.getElementById('ui-layer');
+const pctx = pdfC.getContext('2d');
+const uctx = uiC.getContext('2d');
+const editor = document.getElementById('editor');
+
+// Controls
+const fontSel = document.getElementById('font-family');
+const sizeInp = document.getElementById('font-size');
+const colorInp= document.getElementById('font-color');
+const boldBtn = document.getElementById('btn-bold');
+
+function init(){
+  document.getElementById('file-in').onchange = e=>{ if(e.target.files[0]) openPDF(e.target.files[0]); };
+  document.getElementById('btn-open').onclick = ()=>document.getElementById('file-in').click();
+  document.getElementById('btn-save').onclick = savePDF;
+  document.getElementById('btn-print').onclick = ()=>window.print();
+  document.getElementById('img-in').onchange = e=>loadImg(e.target.files[0]);
+
+  document.querySelectorAll('[data-tool]').forEach(b=>b.onclick=()=>setTool(b.dataset.tool));
+  document.getElementById('btn-undo').onclick = undo;
+  document.getElementById('btn-redo').onclick = redo;
+  document.getElementById('btn-delete').onclick = delSel;
+  document.getElementById('zoom-in').onclick = ()=>{S.scale=Math.min(3,S.scale+0.1); render();};
+  document.getElementById('zoom-out').onclick= ()=>{S.scale=Math.max(0.5,S.scale-0.1); render();};
+
+  [fontSel,sizeInp,colorInp].forEach(el=>el.oninput=applyProps);
+  boldBtn.onclick = ()=>{boldBtn.classList.toggle('active'); applyProps();};
+  ['left','center','right'].forEach(a=>{
+    document.getElementById('align-'+a).onclick=()=>{
+      if(S.sel){ const o=getSel(); if(o&&o.type==='text'){ o.align=a; renderUI(); saveState(); }}
     };
+  });
 
-    // DOM refs
-    const pdfCanvas = document.getElementById('pdf-canvas');
-    const overlay = document.getElementById('overlay');
-    const pdfCtx = pdfCanvas.getContext('2d');
-    const octx = overlay.getContext('2d');
-    const editor = document.getElementById('text-editor');
-    const wrapper = document.getElementById('canvas-wrapper');
+  uiC.onmousedown = onDown;
+  uiC.onmousemove = onMove;
+  window.onmouseup = onUp;
+  uiC.ondblclick = onDbl;
+  editor.onblur = commitEdit;
+  editor.onkeydown = e=>{
+    if(e.key==='Enter'&& !e.shiftKey){ e.preventDefault(); commitEdit(); }
+    if(e.key==='Escape'){ cancelEdit(); }
+  };
 
-    // Controls
-    const fontSel = document.getElementById('font-family');
-    const sizeInp = document.getElementById('font-size');
-    const colorInp = document.getElementById('font-color');
-    const boldBtn = document.getElementById('bold-toggle');
-    const lsInp = document.getElementById('letter-spacing');
-    const stInp = document.getElementById('stretch');
-    const lsVal = document.getElementById('ls-val');
-    const stVal = document.getElementById('st-val');
-    const zoomLabel = document.getElementById('zoom-label');
-
-    // Helpers
-    const genId = () => crypto.randomUUID();
-    const mapFontCanvas = f => f === 'BankCourier' ? '"Courier Prime", Courier, monospace'
-                        : f === 'Times' ? '"Times New Roman", Times, serif'
-                        : 'Helvetica, Arial, sans-serif';
-    const mapFontPdf = (f,bold) => {
-      if (f === 'BankCourier') return bold ? PDFLib.StandardFonts.CourierBold : PDFLib.StandardFonts.Courier;
-      if (f === 'Times') return PDFLib.StandardFonts.TimesRoman;
-      return bold ? PDFLib.StandardFonts.HelveticaBold : PDFLib.StandardFonts.Helvetica;
-    };
-    const isMono = (item) => {
-      // heuristic: fontName contains "Mono" or char widths are nearly equal
-      if ((item.fontName||'').toLowerCase().includes('mono')) return true;
-      if (item.width && item.str && item.str.length>1) {
-        const avg = item.width / item.str.length;
-        let dev = 0;
-        for (const ch of item.str) {
-          const w = item.width / item.str.length;
-          dev += Math.abs(w-avg);
-        }
-        return dev / item.str.length < 0.2 * avg;
-      }
-      return false;
-    };
-
-    // Init UI
-    document.querySelectorAll('[data-tool]').forEach(btn=>{
-      btn.addEventListener('click', ()=>setTool(btn.dataset.tool));
-    });
-    document.getElementById('open-btn').onclick = ()=>document.getElementById('file-input').click();
-    document.getElementById('file-input').onchange = e=>{ if(e.target.files[0]) openPDF(e.target.files[0]); };
-    document.getElementById('save-btn').onclick = savePDF;
-    document.getElementById('zoom-in').onclick = ()=>{ S.scale=Math.min(3,S.scale+0.1); renderPage(); };
-    document.getElementById('zoom-out').onclick = ()=>{ S.scale=Math.max(0.4,S.scale-0.1); renderPage(); };
-    document.getElementById('delete-btn').onclick = deleteSelected;
-    document.getElementById('img-input').onchange = handleImage;
-
-    [fontSel,sizeInp,colorInp,lsInp,stInp].forEach(el=>el.addEventListener('input',applySelectionProps));
-    boldBtn.onclick = ()=>{ boldBtn.classList.toggle('toggled'); applySelectionProps(); };
-    lsInp.addEventListener('input',()=>{lsVal.textContent=lsInp.value+'px';});
-    stInp.addEventListener('input',()=>{stVal.textContent=stInp.value+'%';});
-
-    // Drag-drop PDF
-    const dropOverlay = document.getElementById('drop-overlay');
-    ['dragenter','dragover'].forEach(ev=>document.addEventListener(ev,(e)=>{e.preventDefault(); dropOverlay.classList.add('active');}));
-    ['dragleave','drop'].forEach(ev=>document.addEventListener(ev,(e)=>{e.preventDefault(); dropOverlay.classList.remove('active');}));
-    document.addEventListener('drop',(e)=>{ if(e.dataTransfer.files[0]) openPDF(e.dataTransfer.files[0]); });
-
-    // Canvas interactions
-    overlay.addEventListener('mousedown', onDown);
-    overlay.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-    overlay.addEventListener('dblclick', onDbl);
-
-    // Keyboard
-    document.addEventListener('keydown',(e)=>{
-      if (S.selected && !S.editing) {
-        const obj = S.objects.find(o=>o.id===S.selected);
-        if (!obj) return;
-        let step = e.shiftKey ? 10 : 1;
-        let moved=false;
-        if (e.key==='ArrowLeft'){obj.x-=step; moved=true;}
-        if (e.key==='ArrowRight'){obj.x+=step; moved=true;}
-        if (e.key==='ArrowUp'){obj.y-=step; moved=true;}
-        if (e.key==='ArrowDown'){obj.y+=step; moved=true;}
-        if (moved){e.preventDefault(); redraw();}
-      }
-      if (e.key==='Delete' || e.key==='Backspace') { deleteSelected(); }
-    });
-
-    // Zoom by ctrl+scroll
-    overlay.addEventListener('wheel',(e)=>{
-      if (e.ctrlKey){
-        e.preventDefault();
-        S.scale = Math.min(3, Math.max(0.4, S.scale + (e.deltaY<0?0.05:-0.05)));
-        renderPage();
-      }
-    }, {passive:false});
-
-    // Editor blur
-    editor.addEventListener('blur', commitEdit);
-    editor.addEventListener('keydown',(e)=>{
-      if (e.key==='Enter' && !e.shiftKey){ e.preventDefault(); commitEdit(); }
-      if (e.key==='Escape'){ cancelEdit(); }
-    });
-
-    function setTool(t){
-      if (S.editing) commitEdit();
-      S.tool=t;
-      document.querySelectorAll('[data-tool]').forEach(btn=>btn.classList.toggle('active',btn.dataset.tool===t));
-      overlay.style.cursor = t==='select'?'default':(t==='image'?'copy':'crosshair');
-      if (t!=='select') S.selected=null;
-      redraw();
+  // Drag-drop
+  ['dragenter','dragover'].forEach(ev=>document.addEventListener(ev,e=>{e.preventDefault(); document.getElementById('drop-zone').classList.remove('hidden');}));
+  ['dragleave','drop'].forEach(ev=>document.addEventListener(ev,e=>{e.preventDefault(); if(ev==='drop'){if(e.dataTransfer.files[0]) openPDF(e.dataTransfer.files[0]);} document.getElementById('drop-zone').classList.add('hidden');}));
+}
+function setTool(t){
+  S.tool=t;
+  document.querySelectorAll('.btn-tool').forEach(b=>b.classList.toggle('active',b.dataset.tool===t));
+  uiC.style.cursor = t==='select'?'default':'crosshair';
+  if(t!=='select'){ S.sel=null; renderUI(); }
+}
+async function openPDF(file){
+  S.bytes = await file.arrayBuffer();
+  S.pdf   = await pdfjsLib.getDocument({data:S.bytes}).promise;
+  S.doc   = await PDFLib.PDFDocument.load(S.bytes);
+  S.page  = 1; S.objs=[]; S.sel=null;
+  document.getElementById('btn-save').disabled=false;
+  document.getElementById('drop-zone').classList.add('hidden');
+  render(); saveState();
+}
+async function render(){
+  if(!S.pdf) return;
+  const page = await S.pdf.getPage(S.page);
+  const vp = page.getViewport({scale:S.scale});
+  [pdfC,uiC].forEach(c=>{ c.width=vp.width; c.height=vp.height;});
+  wrap.style.width = vp.width+'px'; wrap.style.height=vp.height+'px';
+  await page.render({canvasContext:pctx, viewport:vp}).promise;
+  document.getElementById('zoom-val').innerText = Math.round(S.scale*100)+'%';
+  renderUI();
+}
+function renderUI(){
+  uctx.clearRect(0,0,uiC.width,uiC.height);
+  for(const o of S.objs){
+    if(S.isEdit && S.sel===o.id) continue;
+    const x=o.x*S.scale, y=o.y*S.scale, w=o.w*S.scale, h=o.h*S.scale;
+    if(o.type==='whiteout'){
+      uctx.fillStyle='#fff'; uctx.fillRect(x,y,w,h);
+    }else if(o.type==='image' && o.img){
+      uctx.drawImage(o.img,x,y,w,h);
+    }else if(o.type==='text'){
+      uctx.save();
+      const fam = o.font==='BankCourier' ? '"Courier Prime", Courier, monospace' : (o.font==='Times'?'Times New Roman, serif':'Helvetica, Arial, sans-serif');
+      const weight = o.bold ? '700' : '400';
+      uctx.font = `${weight} ${o.size*S.scale}px ${fam}`;
+      uctx.fillStyle = o.color;
+      uctx.textBaseline='top';
+      let tx=x;
+      const tw = uctx.measureText(o.text).width;
+      if(o.align==='center') tx = x + (w-tw)/2;
+      if(o.align==='right')  tx = x + w - tw;
+      uctx.fillText(o.text, tx, y);
+      uctx.restore();
     }
+  }
+  if(S.sel && !S.isEdit){
+    const o=getSel(); if(!o) return;
+    const x=o.x*S.scale,y=o.y*S.scale,w=o.w*S.scale,h=o.h*S.scale;
+    uctx.save();
+    uctx.strokeStyle='#0066cc'; uctx.lineWidth=1.5; uctx.setLineDash([4,2]);
+    uctx.strokeRect(x,y,w,h);
+    uctx.setLineDash([]);
+    uctx.fillStyle='#cceeff';
+    const pts=[[x,y],[x+w,y],[x,y+h],[x+w,y+h]];
+    for(const [hx,hy] of pts){ uctx.fillRect(hx-4,hy-4,8,8); uctx.strokeRect(hx-4,hy-4,8,8); }
+    uctx.restore();
+  }
+}
+function getPos(e){
+  const r=uiC.getBoundingClientRect();
+  return {x:(e.clientX-r.left)/S.scale, y:(e.clientY-r.top)/S.scale, rawX:e.clientX-r.left, rawY:e.clientY-r.top};
+}
+function hitObj(x,y){
+  for(let i=S.objs.length-1;i>=0;i--){
+    const o=S.objs[i];
+    if(x>=o.x && x<=o.x+o.w && y>=o.y && y<=o.y+o.h) return o;
+  }
+  return null;
+}
+function handleHit(o,x,y){
+  const tol=6;
+  const pts=[
+    {n:'nw',x:o.x,y:o.y},
+    {n:'ne',x:o.x+o.w,y:o.y},
+    {n:'sw',x:o.x,y:o.y+o.h},
+    {n:'se',x:o.x+o.w,y:o.y+o.h},
+  ];
+  for(const p of pts){ if(Math.abs(x-p.x)<=tol && Math.abs(y-p.y)<=tol) return p.n; }
+  return null;
+}
+function onDown(e){
+  const {x,y}=getPos(e);
+  if(S.tool==='select'){
+    const hit = hitObj(x,y);
+    if(hit){
+      S.sel=hit.id;
+      const h=handleHit(hit,x,y);
+      if(h){ S.resize=h; }
+      else { S.drag={dx:x-hit.x, dy:y-hit.y}; }
+      syncUI(hit);
+    } else { S.sel=null; }
+    renderUI();
+  } else if(S.tool==='text'){
+    createTextAt(x,y);
+  } else if(S.tool==='whiteout'){
+    S.drag={start:{x,y}, white:true};
+  }
+}
+function onMove(e){
+  const {x,y}=getPos(e);
+  if(S.drag && S.drag.white){
+    renderUI();
+    const sx=S.drag.start.x*S.scale, sy=S.drag.start.y*S.scale;
+    const w=x*S.scale - sx, h=y*S.scale - sy;
+    uctx.fillStyle='rgba(204,238,255,0.35)';
+    uctx.strokeStyle='#0066cc';
+    uctx.fillRect(sx,sy,w,h); uctx.strokeRect(sx,sy,w,h);
+  }
+  if(S.drag && !S.drag.white && S.sel){
+    const o=getSel();
+    o.x = x - S.drag.dx; o.y = y - S.drag.dy;
+    if(o.maskId){ const m=S.objs.find(i=>i.id===o.maskId); if(m){ m.x=o.x; m.y=o.y; } }
+    renderUI();
+  }
+  if(S.resize && S.sel){
+    const o=getSel();
+    resizeObj(o,S.resize,x,y);
+    if(o.maskId){ const m=S.objs.find(i=>i.id===o.maskId); if(m){ m.x=o.x; m.y=o.y; m.w=o.w; m.h=o.h; } }
+    renderUI();
+  }
+}
+function onUp(e){
+  if(S.drag && S.drag.white){
+    const {x,y}=getPos(e);
+    const sx=S.drag.start.x, sy=S.drag.start.y;
+    S.objs.push({id:genId(), type:'whiteout', x:Math.min(x,sx), y:Math.min(y,sy), w:Math.abs(x-sx), h:Math.abs(y-sy)});
+    saveState(); renderUI();
+  }
+  if(S.drag && !S.drag.white && S.sel) saveState();
+  S.drag=null; S.resize=null;
+}
+function onDbl(e){
+  const {x,y}=getPos(e);
+  const o = S.objs.find(o=>o.type==='text' && x>=o.x && x<=o.x+o.w && y>=o.y && y<=o.y+o.h);
+  if(o){ S.sel=o.id; startEdit(o); }
+  else if(S.tool==='select'){ // dblclick empty creates text
+    createTextAt(x,y);
+  }
+}
+function resizeObj(o,h,x,y){
+  const min=8;
+  if(h==='nw'){ const nx=Math.min(o.x+o.w-min,x); const ny=Math.min(o.y+o.h-min,y); o.w=o.x+o.w-nx; o.h=o.y+o.h-ny; o.x=nx; o.y=ny; }
+  if(h==='ne'){ const ny=Math.min(o.y+o.h-min,y); o.w=Math.max(min,x-o.x); o.h=o.y+o.h-ny; o.y=ny; }
+  if(h==='sw'){ const nx=Math.min(o.x+o.w-min,x); o.w=o.x+o.w-nx; o.h=Math.max(min,y-o.y); o.x=nx; }
+  if(h==='se'){ o.w=Math.max(min,x-o.x); o.h=Math.max(min,y-o.y); }
+}
 
-    async function openPDF(file){
-      S.pdfBytes = await file.arrayBuffer();
-      S.pdfDoc = await pdfjsLib.getDocument({data:S.pdfBytes}).promise;
-      S.pdfLibDoc = await PDFLib.PDFDocument.load(S.pdfBytes);
-      S.pageNum = 1;
-      S.objects = [];
-      S.selected = null;
-      document.getElementById('save-btn').disabled = false;
-      await renderPage();
-    }
+function createTextAt(x,y){
+  // auto-mask behind text
+  const maskId = genId();
+  const txtId  = genId();
+  const size   = parseInt(sizeInp.value)||12;
+  const h      = size*1.2;
+  const w      = 140;
+  S.objs.push({id:maskId,type:'whiteout',x,y,w,h});
+  S.objs.push({
+    id:txtId,type:'text',text:'',
+    x,y,w,h,
+    font:fontSel.value||'BankCourier',
+    size, color:colorInp.value||'#000',
+    bold:boldBtn.classList.contains('active'),
+    align:'left',
+    maskId
+  });
+  S.sel=txtId; setTool('select'); saveState(); startEdit(getSel());
+}
+function startEdit(o){
+  S.isEdit=true;
+  editor.style.display='block';
+  editor.style.left=(o.x*S.scale)+'px';
+  editor.style.top =(o.y*S.scale)+'px';
+  editor.style.width =(o.w*S.scale)+'px';
+  editor.style.height=(o.h*S.scale)+'px';
+  editor.style.fontFamily = o.font==='BankCourier' ? '"Courier Prime", Courier, monospace' : (o.font==='Times'?'Times New Roman, serif':'Helvetica, Arial, sans-serif');
+  editor.style.fontSize = (o.size*S.scale)+'px';
+  editor.style.fontWeight = o.bold ? '700' : '400';
+  editor.style.color = o.color;
+  editor.style.textAlign = o.align||'left';
+  editor.value = o.text;
+  editor.focus();
+  renderUI();
+}
+function commitEdit(){
+  if(!S.isEdit) return;
+  const o=getSel(); if(!o) return;
+  o.text = editor.value;
+  uctx.font = `${o.bold?'bold ':''}${o.size}px ${o.font==='BankCourier'?'Courier Prime':'Helvetica'}`;
+  const tw = uctx.measureText(o.text).width + 10;
+  o.w = Math.max(40, tw);
+  o.h = o.size*1.2;
+  if(o.maskId){ const m=S.objs.find(i=>i.id===o.maskId); if(m){ m.x=o.x; m.y=o.y; m.w=o.w; m.h=o.h; } }
+  S.isEdit=false; editor.style.display='none'; saveState(); renderUI();
+}
+function cancelEdit(){ S.isEdit=false; editor.style.display='none'; renderUI(); }
 
-    async function renderPage(){
-      if (!S.pdfDoc) return;
-      const page = await S.pdfDoc.getPage(S.pageNum);
-      const viewport = page.getViewport({scale:S.scale});
-      [pdfCanvas, overlay].forEach(c=>{
-        c.width = viewport.width; c.height = viewport.height;
+function applyProps(){
+  const o=getSel(); if(!o||o.type!=='text') return;
+  o.font = fontSel.value;
+  o.size = parseInt(sizeInp.value)||o.size;
+  o.color= colorInp.value;
+  o.bold = boldBtn.classList.contains('active');
+  saveState(); renderUI();
+}
+
+function getSel(){ return S.objs.find(o=>o.id===S.sel); }
+function genId(){ return crypto.randomUUID(); }
+
+function undo(){
+  if(S.hi>0){ S.hi--; S.objs=JSON.parse(S.history[S.hi]); renderUI(); }
+}
+function redo(){
+  if(S.hi<S.history.length-1){ S.hi++; S.objs=JSON.parse(S.history[S.hi]); renderUI(); }
+}
+function saveState(){
+  if(S.hi < S.history.length-1) S.history = S.history.slice(0,S.hi+1);
+  S.history.push(JSON.stringify(S.objs));
+  S.hi++;
+}
+
+function delSel(){
+  if(!S.sel) return;
+  const o=getSel();
+  if(o && o.maskId) S.objs = S.objs.filter(x=>x.id!==o.maskId);
+  S.objs = S.objs.filter(x=>x.id!==S.sel);
+  S.sel=null; saveState(); renderUI();
+}
+function loadImg(file){
+  if(!file) return;
+  const img=new Image();
+  img.onload=()=>{
+    const ratio=img.height/img.width;
+    const w=200, h=200*ratio;
+    S.objs.push({id:genId(),type:'image',img,x:40,y:40,w,h});
+    saveState(); renderUI();
+  };
+  img.src=URL.createObjectURL(file);
+}
+
+// Save with pdf-lib: whiteout, text (bold), images
+async function savePDF(){
+  if(!S.doc) return;
+  const doc = await PDFLib.PDFDocument.load(S.bytes);
+  const page = doc.getPages()[S.page-1];
+  const {height} = page.getSize();
+
+  const fontCache={};
+  async function getFont(f,b){
+    const key=f+(b?'b':'n'); if(fontCache[key]) return fontCache[key];
+    let name;
+    if(f==='BankCourier') name = b?PDFLib.StandardFonts.CourierBold:PDFLib.StandardFonts.Courier;
+    else if(f==='Times')   name = b?PDFLib.StandardFonts.TimesRomanBold:PDFLib.StandardFonts.TimesRoman;
+    else                   name = b?PDFLib.StandardFonts.HelveticaBold:PDFLib.StandardFonts.Helvetica;
+    const ft = await doc.embedFont(name); fontCache[key]=ft; return ft;
+  }
+
+  for(const o of S.objs){
+    if(o.type==='whiteout'){
+      page.drawRectangle({x:o.x, y:height - (o.y+o.h), width:o.w, height:o.h, color: PDFLib.rgb(1,1,1)});
+    } else if(o.type==='text'){
+      const font = await getFont(o.font, o.bold);
+      const rgb = hexToRgb(o.color||'#000000');
+      const y = height - o.y - o.size*0.8;
+      // alignment: use bounding width
+      const w = font.widthOfTextAtSize(o.text, o.size);
+      let tx = o.x;
+      if(o.align==='center') tx = o.x + (o.w - w)/2;
+      if(o.align==='right')  tx = o.x + (o.w - w);
+      page.drawText(o.text,{
+        x:tx, y,
+        size:o.size,
+        font,
+        color: PDFLib.rgb(rgb.r/255,rgb.g/255,rgb.b/255)
       });
-      wrapper.style.width = viewport.width+'px';
-      wrapper.style.height = viewport.height+'px';
-      await page.render({canvasContext:pdfCtx, viewport}).promise;
-
-      // capture text items for smart detection
-      const textContent = await page.getTextContent();
-      S.textItems = textContent.items.map(it=>{
-        const tx = it.transform;
-        const fontSize = Math.hypot(tx[0], tx[1]);
-        // approximate bbox
-        const w = it.width;
-        const h = fontSize;
-        const x = tx[4];
-        const y = viewport.height - tx[5];
-        return { ...it, bbox:{x, y-h, w, h}, fontSize };
-      });
-
-      zoomLabel.textContent = Math.round(S.scale*100)+'%';
-      redraw();
+    } else if(o.type==='image' && o.img){
+      // re-embed via canvas for simplicity
+      const temp = document.createElement('canvas');
+      temp.width=o.img.naturalWidth; temp.height=o.img.naturalHeight;
+      temp.getContext('2d').drawImage(o.img,0,0);
+      const dataUrl = temp.toDataURL('image/png');
+      const embed = await doc.embedPng(dataUrl);
+      page.drawImage(embed,{x:o.x, y:height - (o.y+o.h), width:o.w, height:o.h});
     }
+  }
+  const bytes = await doc.save();
+  const blob = new Blob([bytes], {type:'application/pdf'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='edited.pdf'; a.click();
+}
 
-    function redraw(){
-      octx.clearRect(0,0,overlay.width,overlay.height);
-      // Draw objects
-      for (const obj of S.objects){
-        drawObj(obj);
-      }
-      // selection
-      if (S.selected && !S.editing){
-        const obj = S.objects.find(o=>o.id===S.selected);
-        if (obj) drawSelection(obj);
-      }
-    }
+function hexToRgb(hex){
+  const v=parseInt(hex.slice(1),16);
+  return {r:(v>>16)&255,g:(v>>8)&255,b:v&255};
+}
 
-    function drawObj(o){
-      const x = o.x * S.scale, y = o.y * S.scale, w = o.w * S.scale, h = o.h * S.scale;
-      if (o.type==='whiteout'){
-        octx.fillStyle='#fff';
-        octx.fillRect(x,y,w,h);
-      } else if (o.type==='image' && o.img){
-        octx.drawImage(o.img,x,y,w,h);
-      } else if (o.type==='text'){
-        octx.save();
-        octx.fillStyle = o.color || '#000';
-        const weight = o.bold ? 'bold ' : '';
-        octx.font = `${weight}${o.size * S.scale}px ${mapFontCanvas(o.font)}`;
-        octx.textBaseline='top';
-        octx.translate(x,y);
-        octx.scale(o.stretch||1,1);
-        drawSpaced(octx, o.text, 0,0, (o.ls||0)*S.scale);
-        octx.restore();
-      }
-    }
-    function drawSpaced(ctx2d, text, x, y, ls){
-      let cur=x;
-      for(const ch of text){
-        ctx2d.fillText(ch, cur, y);
-        cur += ctx2d.measureText(ch).width + ls;
-      }
-    }
-
-    function drawSelection(o){
-      const x = o.x*S.scale, y=o.y*S.scale, w=o.w*S.scale, h=o.h*S.scale;
-      octx.save();
-      octx.strokeStyle = '#cceeff';
-      octx.lineWidth = 2;
-      octx.setLineDash([4,2]);
-      octx.strokeRect(x,y,w,h);
-      octx.setLineDash([]);
-      octx.strokeStyle = '#8ecae6';
-      octx.strokeRect(x,y,w,h);
-      // handles
-      const pts = [[x,y],[x+w,y],[x,y+h],[x+w,y+h]];
-      octx.fillStyle='#fff';
-      octx.lineWidth=2;
-      octx.strokeStyle='#8ecae6';
-      for(const [hx,hy] of pts){
-        octx.fillRect(hx-5,hy-5,10,10);
-        octx.strokeRect(hx-5,hy-5,10,10);
-      }
-      octx.restore();
-    }
-
-    function onDown(e){
-      const pos = getPos(e);
-      if (S.tool==='select'){
-        const hit = hitTest(pos.x,pos.y);
-        if (hit){
-          S.selected = hit.id;
-          const handle = handleHit(hit,pos.x,pos.y);
-          if (handle){
-            S.resizing = handle;
-          } else {
-            S.isDragging=true;
-            S.dragOffset={x:pos.x-hit.x,y:pos.y-hit.y};
-          }
-          syncProps(hit);
-        } else {
-          S.selected=null;
-        }
-        redraw();
-      } else if (S.tool==='whiteout'){
-        S.newRectStart = pos;
-      } else if (S.tool==='text'){
-        // Smart detection: try find text item under click
-        const item = textHit(pos.x,pos.y);
-        if (item){
-          if (isMono(item)) fontSel.value='BankCourier';
-          const sz = Math.round(item.fontSize);
-          sizeInp.value = sz;
-          syncLsStDisplay();
-        }
-        createTextAt(pos.x,pos.y);
-      } else if (S.tool==='image'){
-        document.getElementById('img-input').click();
-      }
-    }
-
-    function onMove(e){
-      const pos = getPos(e);
-      if (S.tool==='whiteout' && S.newRectStart){
-        redraw();
-        const x0=S.newRectStart.x*S.scale, y0=S.newRectStart.y*S.scale;
-        const w=pos.rawX - x0, h=pos.rawY - y0;
-        octx.fillStyle='rgba(204,238,255,0.25)';
-        octx.strokeStyle='#0066cc';
-        octx.fillRect(x0,y0,w,h); octx.strokeRect(x0,y0,w,h);
-      }
-      if (S.isDragging && S.selected){
-        const obj = S.objects.find(o=>o.id===S.selected);
-        if (obj){
-          obj.x = pos.x - S.dragOffset.x;
-          obj.y = pos.y - S.dragOffset.y;
-          redraw();
-        }
-      }
-      if (S.resizing && S.selected){
-        const o = S.objects.find(o=>o.id===S.selected);
-        if (o){
-          resizeObj(o, S.resizing, pos.x, pos.y);
-          redraw();
-        }
-      }
-    }
-
-    function onUp(e){
-      if (S.tool==='whiteout' && S.newRectStart){
-        const pos = getPos(e);
-        const x = Math.min(pos.x, S.newRectStart.x);
-        const y = Math.min(pos.y, S.newRectStart.y);
-        const w = Math.abs(pos.x - S.newRectStart.x);
-        const h = Math.abs(pos.y - S.newRectStart.y);
-        if (w>2 && h>2){
-          const obj={id:genId(), type:'whiteout', x,y,w,h};
-          S.objects.push(obj);
-          S.selected = obj.id;
-        }
-        S.newRectStart=null; redraw();
-      }
-      S.isDragging=false; S.resizing=null;
-    }
-
-    function onDbl(e){
-      const pos = getPos(e);
-      const hit = hitTest(pos.x,pos.y);
-      if (hit && hit.type==='text'){
-        S.selected = hit.id;
-        startEdit(hit);
-      }
-    }
-
-    function hitTest(x,y){
-      for (let i=S.objects.length-1;i>=0;i--){
-        const o=S.objects[i];
-        if (x>=o.x && x<=o.x+o.w && y>=o.y && y<=o.y+o.h) return o;
-      }
-      return null;
-    }
-    function handleHit(o,x,y){
-      const hs=6;
-      const corners=[
-        {n:'nw',x:o.x,y:o.y},
-        {n:'ne',x:o.x+o.w,y:o.y},
-        {n:'sw',x:o.x,y:o.y+o.h},
-        {n:'se',x:o.x+o.w,y:o.y+o.h},
-      ];
-      for (const c of corners){
-        if (Math.abs(x-c.x)<=hs && Math.abs(y-c.y)<=hs) return c.n;
-      }
-      return null;
-    }
-    function resizeObj(o,handle,x,y){
-      const min=4;
-      if (handle==='nw'){ const nx=Math.min(o.x+o.w-min,x); const ny=Math.min(o.y+o.h-min,y); o.w=o.x+o.w-nx; o.h=o.y+o.h-ny; o.x=nx; o.y=ny; }
-      if (handle==='ne'){ const ny=Math.min(o.y+o.h-min,y); o.w=Math.max(min,x-o.x); o.h=o.y+o.h-ny; o.y=ny; }
-      if (handle==='sw'){ const nx=Math.min(o.x+o.w-min,x); o.w=o.x+o.w-nx; o.h=Math.max(min,y-o.y); o.x=nx; }
-      if (handle==='se'){ o.w=Math.max(min,x-o.x); o.h=Math.max(min,y-o.y); }
-    }
-
-    // Text creation with auto mask
-    function createTextAt(x,y){
-      const maskId = genId();
-      const textId = genId();
-      const size = parseInt(sizeInp.value)||12;
-      const h = size*1.2;
-      const w = 120;
-
-      // whiteout mask behind text
-      S.objects.push({id:maskId,type:'whiteout',x,y,w,h});
-
-      const obj = {
-        id:textId,type:'text',x,y,w,h,
-        text:'',
-        font: fontSel.value,
-        size,
-        color: colorInp.value,
-        ls: parseFloat(lsInp.value)||0,
-        stretch: (parseInt(stInp.value)||100)/100,
-        bold: boldBtn.classList.contains('toggled'),
-        maskId
-      };
-      S.objects.push(obj);
-      S.selected = textId;
-      startEdit(obj);
-    }
-
-    function startEdit(obj){
-      S.editing=true;
-      const x = obj.x*S.scale, y=obj.y*S.scale;
-      editor.style.display='block';
-      editor.style.left = x+'px';
-      editor.style.top  = y+'px';
-      editor.style.minWidth = (obj.w*S.scale)+'px';
-      editor.style.height = (obj.h*S.scale)+'px';
-      editor.style.fontFamily = mapFontCanvas(obj.font);
-      editor.style.fontSize = (obj.size*S.scale)+'px';
-      editor.style.color = obj.color;
-      editor.style.fontWeight = obj.bold?'700':'400';
-      editor.style.letterSpacing = (obj.ls*S.scale)+'px';
-      editor.style.transform = `scaleX(${obj.stretch||1})`;
-      editor.value = obj.text;
-      editor.focus();
-      redraw();
-    }
-    function commitEdit(){
-      if (!S.editing) return;
-      const obj = S.objects.find(o=>o.id===S.selected);
-      if (obj && obj.type==='text'){
-        obj.text = editor.value;
-        // measure width
-        octx.save();
-        octx.font = `${obj.bold?'bold ':''}${obj.size}px ${mapFontCanvas(obj.font)}`;
-        const w = measureSpaced(octx,obj.text,obj.ls)*(obj.stretch||1);
-        obj.w = Math.max(12, w);
-        obj.h = obj.size*1.2;
-        octx.restore();
-        // sync mask
-        if (obj.maskId){
-          const m = S.objects.find(o=>o.id===obj.maskId);
-          if (m){ m.x=obj.x; m.y=obj.y; m.w=obj.w; m.h=obj.h; }
-        }
-      }
-      editor.style.display='none';
-      S.editing=false;
-      redraw();
-    }
-    function cancelEdit(){
-      S.editing=false; editor.style.display='none'; redraw();
-    }
-    function measureSpaced(ctx,text,ls){
-      let w=0;
-      for(const ch of text){ w+=ctx.measureText(ch).width + ls; }
-      return w - ls;
-    }
-
-    function applySelectionProps(){
-      const obj = S.objects.find(o=>o.id===S.selected);
-      if (!obj || obj.type!=='text') return;
-      obj.font = fontSel.value;
-      obj.size = parseInt(sizeInp.value)||12;
-      obj.color = colorInp.value;
-      obj.ls = parseFloat(lsInp.value)||0;
-      obj.stretch = (parseInt(stInp.value)||100)/100;
-      obj.bold = boldBtn.classList.contains('toggled');
-      // recompute size
-      octx.save();
-      octx.font = `${obj.bold?'bold ':''}${obj.size}px ${mapFontCanvas(obj.font)}`;
-      obj.w = measureSpaced(octx,obj.text,obj.ls)*(obj.stretch||1);
-      obj.h = obj.size*1.2;
-      octx.restore();
-      if (obj.maskId){
-        const m = S.objects.find(o=>o.id===obj.maskId);
-        if (m){ m.x=obj.x; m.y=obj.y; m.w=obj.w; m.h=obj.h; }
-      }
-      if (S.editing){
-        editor.style.fontFamily = mapFontCanvas(obj.font);
-        editor.style.fontSize = (obj.size*S.scale)+'px';
-        editor.style.color = obj.color;
-        editor.style.fontWeight = obj.bold?'700':'400';
-        editor.style.letterSpacing = (obj.ls*S.scale)+'px';
-        editor.style.transform = `scaleX(${obj.stretch||1})`;
-      }
-      redraw();
-    }
-
-    function syncProps(obj){
-      if (!obj || obj.type!=='text') return;
-      fontSel.value = obj.font;
-      sizeInp.value = obj.size;
-      colorInp.value = obj.color;
-      lsInp.value = obj.ls||0; lsVal.textContent=lsInp.value+'px';
-      stInp.value = Math.round((obj.stretch||1)*100); stVal.textContent=stInp.value+'%';
-      boldBtn.classList.toggle('toggled', !!obj.bold);
-    }
-
-    function textHit(x,y){
-      return S.textItems.find(it=>{
-        const b=it.bbox;
-        return x>=b.x && x<=b.x+b.w && y>=b.y && y<=b.y+b.h;
-      });
-    }
-
-    function deleteSelected(){
-      if (!S.selected) return;
-      const obj = S.objects.find(o=>o.id===S.selected);
-      if (obj && obj.maskId){
-        S.objects = S.objects.filter(o=>o.id!==obj.maskId);
-      }
-      S.objects = S.objects.filter(o=>o.id!==S.selected);
-      S.selected=null; redraw();
-    }
-
-    async function handleImage(e){
-      const f = e.target.files[0];
-      if (!f) return;
-      const img = new Image();
-      img.onload = ()=>{
-        const ratio = img.height/img.width;
-        const w=180, h=180*ratio;
-        const obj={id:genId(), type:'image', x:40, y:40, w, h, img, imgFile:f};
-        S.objects.push(obj); S.selected=obj.id; redraw();
-      };
-      img.src = URL.createObjectURL(f);
-    }
-
-    async function savePDF(){
-      if (!S.pdfLibDoc) return;
-      const doc = await PDFLib.PDFDocument.load(S.pdfBytes);
-      const page = doc.getPages()[S.pageNum-1];
-      const {height} = page.getSize();
-
-      const fontCache = {};
-      async function getFont(f,b){
-        const key=f+(b?'b':'n');
-        if (fontCache[key]) return fontCache[key];
-        const name = mapFontPdf(f,b);
-        const font = await doc.embedFont(name);
-        fontCache[key]=font; return font;
-      }
-
-      for (const o of S.objects){
-        if (o.type==='whiteout'){
-          page.drawRectangle({
-            x:o.x, y:height - (o.y + o.h),
-            width:o.w, height:o.h,
-            color: PDFLib.rgb(1,1,1)
-          });
-        } else if (o.type==='text'){
-          const font = await getFont(o.font, o.bold);
-          const col = hexToRgb(o.color||'#000000');
-          const size = o.size;
-          const ls = o.ls||0;
-          const stretch = o.stretch||1;
-          let cur = o.x;
-          const baseY = height - o.y - size*0.8;
-          for (const ch of o.text){
-            const w = font.widthOfTextAtSize(ch, size)*stretch;
-            page.drawText(ch,{
-              x:cur, y:baseY,
-              size, font,
-              xScale: stretch,
-              color: PDFLib.rgb(col.r/255,col.g/255,col.b/255)
-            });
-            cur += w + ls;
-          }
-        } else if (o.type==='image' && o.imgFile){
-          const bytes = await o.imgFile.arrayBuffer();
-          let embedded;
-          if (o.imgFile.type==='image/png') embedded = await doc.embedPng(bytes);
-          else embedded = await doc.embedJpg(bytes);
-          page.drawImage(embedded,{
-            x:o.x, y:height - (o.y + o.h),
-            width:o.w, height:o.h
-          });
-        }
-      }
-      const out = await doc.save();
-      const blob = new Blob([out], {type:'application/pdf'});
-      const a=document.createElement('a');
-      a.href=URL.createObjectURL(blob); a.download='Alta_Edited.pdf'; a.click();
-      URL.revokeObjectURL(a.href);
-    }
-
-    function hexToRgb(hex){
-      const v=parseInt(hex.slice(1),16);
-      return {r:(v>>16)&255, g:(v>>8)&255, b:v&255};
-    }
-
-    function getPos(e){
-      const rect=overlay.getBoundingClientRect();
-      const rawX = e.clientX - rect.left;
-      const rawY = e.clientY - rect.top;
-      return {x: rawX / S.scale, y: rawY / S.scale, rawX, rawY};
-    }
-
-    function syncLsStDisplay(){
-      lsVal.textContent = lsInp.value + 'px';
-      stVal.textContent = stInp.value + '%';
-    }
-
-    // Start
-    setTool('select');
-    syncLsStDisplay();
-  </script>
+// Start
+init();
+</script>
 </body>
 </html>
