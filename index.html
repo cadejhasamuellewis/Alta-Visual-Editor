@@ -2,215 +2,171 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Alta Bank-Grade PDF Editor</title>
+  <title>Alta Pro - Bank Grade Editor</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Courier Prime used to mimic “Bank Courier” -->
+  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet" />
+
+  <!-- PDF.js / PDF-Lib -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+
   <style>
     :root {
-      --toolbar-bg: #222222;
-      --toolbar-text: #f3f3f3;
-      --accent: #3b82f6;
-      --accent-2: #60a5fa;
-      --border: #444;
-      --panel: #1a1a1a;
-      --canvas-bg: #4b4f55;
-      --selection: rgba(59, 130, 246, 0.18);
-      --selection-border: #3b82f6;
+      --bg-body: #f5f6f8;
+      --bg-panel: #ffffff;
+      --border: #e5e7eb;
+      --accent: #cceeff;
+      --accent-dark: #8ecae6;
+      --accent-text: #0b5c80;
+      --text-main: #1e293b;
+      --shadow: 0 4px 10px rgba(0,0,0,0.08);
+      --handle: #cceeff;
     }
     * { box-sizing: border-box; }
     body {
-      margin: 0;
-      font-family: "Segoe UI", system-ui, sans-serif;
-      background: #2f343a;
-      color: #111;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
+      margin: 0; font-family: 'Inter', sans-serif;
+      background: var(--bg-body); color: var(--text-main);
+      display: flex; flex-direction: column; height: 100vh; overflow: hidden;
     }
     /* Toolbar */
     .toolbar {
-      position: sticky;
-      top: 0;
-      z-index: 2000;
-      height: 56px;
-      background: var(--toolbar-bg);
-      color: var(--toolbar-text);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 6px 12px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.35);
+      height: 64px; background: var(--bg-panel); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; padding: 8px 16px; gap: 12px;
+      box-shadow: var(--shadow); z-index: 100;
     }
-    .brand { font-weight: 700; letter-spacing: 1px; margin-right: 10px; color: #fff; }
-    .tool-btn, .pill {
-      background: transparent;
-      color: var(--toolbar-text);
-      border: 1px solid transparent;
-      border-radius: 6px;
-      padding: 6px 10px;
-      height: 36px;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      cursor: pointer;
-      transition: all .15s;
-      font-size: 13px;
+    .group { display: flex; align-items: center; gap: 10px; }
+    .divider { width:1px; height:28px; background: var(--border); margin: 0 6px; }
+    .btn {
+      background: transparent; border: 1px solid transparent; border-radius: 6px;
+      padding: 6px 10px; min-width: 48px; height: 36px;
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      color: #667085; font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s;
     }
-    .tool-btn:hover { background: rgba(255,255,255,0.08); }
-    .tool-btn.active { background: #333; border-color: #555; box-shadow: inset 0 1px 3px rgba(0,0,0,0.4); }
-    .divider { width: 1px; height: 24px; background: #444; margin: 0 4px; }
-    select, input[type=number] {
-      background: var(--panel);
-      color: #fff;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      height: 32px;
-      padding: 4px 8px;
+    .btn i { font-size: 15px; }
+    .btn:hover { background: #f8fafc; color: var(--accent-text); }
+    .btn.active {
+      background: var(--accent); color: var(--accent-text);
+      border-color: var(--accent-dark); box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
     }
-    input[type=color] {
-      width: 40px; height: 32px;
-      border: 1px solid var(--border);
-      border-radius: 4px; padding: 0;
-      background: var(--panel);
-    }
-    .slider-group {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      color: #ddd;
-      font-size: 12px;
-    }
-    .slider-group input[type=range] { width: 120px; }
-    /* Floating property bar area */
+    /* Property bar */
     .prop-bar {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 4px 8px;
-      border-left: 1px solid #444;
-      margin-left: 6px;
+      height: 52px; background: #fff; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; padding: 0 16px; gap: 12px;
     }
+    select, input[type=number], input[type=color] {
+      height: 32px; border: 1px solid var(--border); border-radius: 4px;
+      padding: 0 8px; font-size: 12px; color: #334155; background: #fff;
+    }
+    input[type=number] { width: 60px; }
+    input[type=color] { width: 36px; padding: 0; border: 1px solid var(--border); }
+    .toggle {
+      width: 32px; height: 32px; border: 1px solid var(--border);
+      border-radius: 4px; background: #fff; cursor: pointer; font-weight: 700;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .toggle.toggled { background: #333; color: #fff; border-color: #111; }
+    .slider-wrap { display:flex; align-items:center; gap:8px; font-size:12px; color:#475569; }
+    .slider-wrap input[type=range]{ width: 120px; }
     /* Workspace */
     #workspace {
-      flex: 1;
-      background: var(--canvas-bg);
-      overflow: auto;
-      position: relative;
-      padding: 32px;
-      display: flex;
-      justify-content: center;
+      flex: 1; overflow: auto; background: #e2e8f0;
+      display: flex; justify-content: center; padding: 32px; position: relative;
     }
     #canvas-wrapper {
-      position: relative;
-      background: #fff;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      position: relative; background: #fff; box-shadow: 0 10px 20px rgba(0,0,0,0.12);
       transform-origin: top left;
-      user-select: none;
     }
-    #pdf-canvas, #overlay {
-      position: absolute;
-      top: 0; left: 0;
+    canvas { position: absolute; top:0; left:0; }
+    #pdf-canvas { z-index:1; }
+    #overlay { z-index:2; }
+    /* Inline textarea editor */
+    #text-editor {
+      position: absolute; z-index: 30; display: none;
+      background: transparent; border: 1px dashed var(--accent-text);
+      padding: 0; margin: 0; resize: none; overflow: hidden; white-space: pre;
+      line-height: 1.1; transform-origin: top left;
     }
-    #pdf-canvas { z-index: 1; }
-    #overlay { z-index: 2; }
     /* Selection */
     .selection-box {
-      position: absolute;
-      border: 2px solid var(--selection-border);
-      background: var(--selection);
-      pointer-events: none;
-      z-index: 10;
+      position: absolute; border: 2px solid var(--accent);
+      background: rgba(204,238,255,0.2); pointer-events: none; z-index: 15;
     }
     .handle {
-      position: absolute;
-      width: 10px; height: 10px;
-      background: #fff;
-      border: 2px solid var(--selection-border);
-      border-radius: 2px;
-      z-index: 11;
-      transform: translate(-50%, -50%);
-      pointer-events: all;
-      cursor: pointer;
+      position: absolute; width: 10px; height: 10px; background: #fff;
+      border: 2px solid var(--accent-dark); border-radius: 2px; z-index: 16;
+      transform: translate(-50%,-50%); pointer-events: all;
     }
-    .handle.nw { top: 0; left: 0; cursor: nwse-resize; }
-    .handle.ne { top: 0; left: 100%; cursor: nesw-resize; }
-    .handle.sw { top: 100%; left: 0; cursor: nesw-resize; }
-    .handle.se { top: 100%; left: 100%; cursor: nwse-resize; }
-    /* Upload overlay */
-    .dropzone {
-      position: absolute;
-      inset: 0;
-      background: rgba(0,0,0,0.55);
-      color: #fff;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      gap: 8px;
-      z-index: 3000;
-      font-size: 18px;
+    /* Drop overlay */
+    .drop-overlay {
+      position: fixed; inset:0; background: rgba(255,255,255,0.9);
+      display: none; align-items: center; justify-content: center; flex-direction: column;
+      z-index: 3000; color: var(--accent-text); gap: 8px;
     }
-    .dropzone.show { display: flex; }
-    .zoom-hint {
-      position: fixed;
-      right: 16px; bottom: 16px;
-      background: rgba(0,0,0,0.55);
-      color: #eee;
-      padding: 8px 10px;
-      border-radius: 8px;
-      font-size: 12px;
-      z-index: 3500;
-    }
-    /* Buttons */
-    .btn-ghost { background: rgba(255,255,255,0.08); border-color: #666; }
+    .drop-overlay.active { display: flex; }
   </style>
 </head>
 <body>
   <!-- Toolbar -->
   <div class="toolbar">
-    <span class="brand">ALTA BANK PRO</span>
-    <button class="tool-btn" id="open-btn"><i class="fa-solid fa-folder-open"></i>Open</button>
-    <button class="tool-btn" id="save-btn" disabled><i class="fa-solid fa-floppy-disk"></i>Save</button>
+    <div class="group">
+      <strong style="color:#0f172a;">ALTA PRO</strong>
+      <div class="divider"></div>
+      <button class="btn" id="open-btn"><i class="fa-regular fa-folder-open"></i>Open</button>
+      <button class="btn" id="save-btn" disabled><i class="fa-regular fa-floppy-disk"></i>Save</button>
+    </div>
     <div class="divider"></div>
-    <button class="tool-btn active" data-tool="select"><i class="fa-solid fa-arrow-pointer"></i>Select</button>
-    <button class="tool-btn" data-tool="text"><i class="fa-solid fa-i-cursor"></i>Text</button>
-    <button class="tool-btn" data-tool="whiteout"><i class="fa-solid fa-eraser"></i>Whiteout</button>
-    <button class="tool-btn" data-tool="image"><i class="fa-solid fa-image"></i>Image</button>
+    <div class="group">
+      <button class="btn active" data-tool="select"><i class="fa-solid fa-arrow-pointer"></i>Select</button>
+      <div class="divider"></div>
+      <button class="btn" data-tool="text"><i class="fa-solid fa-font"></i>Text</button>
+      <button class="btn" data-tool="whiteout"><i class="fa-solid fa-eraser"></i>Whiteout</button>
+      <button class="btn" data-tool="image"><i class="fa-regular fa-image"></i>Image</button>
+    </div>
     <div class="divider"></div>
+    <div class="group">
+      <button class="btn" id="delete-btn" title="Delete"><i class="fa-regular fa-trash-can" style="color:#ef4444;"></i></button>
+    </div>
+    <div class="divider"></div>
+    <div class="group">
+      <button class="btn" id="zoom-out"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+      <span id="zoom-label" style="font-size:12px; color:#475569; min-width:48px; text-align:center;">100%</span>
+      <button class="btn" id="zoom-in"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+    </div>
+  </div>
 
-    <!-- Property bar (shows for selected objects) -->
-    <div class="prop-bar" id="prop-bar">
-      <label style="color:#ccc;font-size:12px;">Font</label>
+  <!-- Property Bar -->
+  <div class="prop-bar">
+    <div class="group" style="gap:8px;">
+      <label style="font-size:11px; color:#94a3b8; font-weight:600;">Font</label>
       <select id="font-family">
+        <option value="BankCourier">Bank Courier (Courier Prime)</option>
         <option value="Helvetica">Helvetica</option>
-        <option value="Courier">Courier</option>
-        <option value="TimesRoman">Times</option>
-        <option value="BankCourier">Bank Courier</option>
+        <option value="Times">Times New Roman</option>
       </select>
-      <input type="number" id="font-size" min="6" max="72" value="12" style="width:60px;" />
-      <input type="color" id="font-color" value="#000000" />
-      <div class="slider-group">
-        <span>Letter Spacing</span>
+      <div class="divider" style="height:20px;"></div>
+      <input type="number" id="font-size" value="12" min="6" max="96" title="Size" />
+      <button class="toggle" id="bold-toggle" title="Bold / Darkness">B</button>
+      <input type="color" id="font-color" value="#000000" title="Color" />
+      <div class="divider" style="height:20px;"></div>
+      <div class="slider-wrap">
+        <span>Letter spacing</span>
         <input type="range" id="letter-spacing" min="-2" max="10" step="0.1" value="0" />
-        <span id="ls-val">0px</span>
+        <span id="ls-val" style="width:42px; text-align:right;">0px</span>
       </div>
-      <div class="slider-group">
+      <div class="slider-wrap">
         <span>Stretch</span>
         <input type="range" id="stretch" min="50" max="150" step="1" value="100" />
-        <span id="stretch-val">100%</span>
+        <span id="st-val" style="width:42px; text-align:right;">100%</span>
       </div>
     </div>
-
-    <div class="divider"></div>
-    <button class="tool-btn btn-ghost" id="zoom-out"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
-    <button class="tool-btn btn-ghost" id="zoom-in"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
-    <span style="min-width:60px; text-align:center; font-size:12px; color:#ccc;" id="zoom-label">100%</span>
-    <div class="divider"></div>
-    <button class="tool-btn btn-ghost" id="delete-btn" title="Delete (Del)"><i class="fa-solid fa-trash"></i></button>
+    <div style="flex:1;"></div>
   </div>
 
   <!-- Workspace -->
@@ -218,14 +174,15 @@
     <div id="canvas-wrapper">
       <canvas id="pdf-canvas"></canvas>
       <canvas id="overlay"></canvas>
+      <textarea id="text-editor"></textarea>
     </div>
-    <div class="dropzone" id="dropzone">
-      <i class="fa-solid fa-file-arrow-up fa-2xl"></i>
-      <div>Drop PDF here to open</div>
+    <div class="drop-overlay" id="drop-overlay">
+      <i class="fa-solid fa-cloud-arrow-up fa-3x"></i>
+      <div>Drop PDF Here</div>
     </div>
   </div>
-  <div class="zoom-hint">Tip: Ctrl + Scroll to Zoom</div>
 
+  <!-- Hidden inputs -->
   <input type="file" id="file-input" accept="application/pdf" style="display:none" />
   <input type="file" id="img-input" accept="image/png,image/jpeg" style="display:none" />
 
@@ -233,566 +190,578 @@
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
     // State
-    const state = {
-      pdfDoc: null,
+    const S = {
       pdfBytes: null,
+      pdfDoc: null,
       pdfLibDoc: null,
       pageNum: 1,
-      scale: 1.2,
+      scale: 1.0,
       tool: 'select',
-      objects: [], // {id,type,x,y,w,h,text,font,size,color,ls,stretch,imgData}
-      selectedId: null,
-      dragging: false,
-      resizing: false,
-      resizeHandle: null,
+      objects: [], // {id,type,x,y,w,h,text,font,size,color,ls,stretch,bold,img,imgFile}
+      selected: null,
+      isDragging: false,
       dragOffset: {x:0,y:0},
-      startBox: {x:0,y:0},
-      hover: null,
+      resizing: null, // handle name
+      newRectStart: null,
+      editing: false,
+      textItems: [], // pdf.js text items for font detection
     };
 
-    const canvas = document.getElementById('pdf-canvas');
+    // DOM refs
+    const pdfCanvas = document.getElementById('pdf-canvas');
     const overlay = document.getElementById('overlay');
-    const ctx = canvas.getContext('2d');
+    const pdfCtx = pdfCanvas.getContext('2d');
     const octx = overlay.getContext('2d');
+    const editor = document.getElementById('text-editor');
     const wrapper = document.getElementById('canvas-wrapper');
-    const propBar = document.getElementById('prop-bar');
 
-    const fileInput = document.getElementById('file-input');
-    const imgInput = document.getElementById('img-input');
-    const dropzone = document.getElementById('dropzone');
-    const zoomLabel = document.getElementById('zoom-label');
-
+    // Controls
     const fontSel = document.getElementById('font-family');
-    const fontSizeInput = document.getElementById('font-size');
-    const fontColorInput = document.getElementById('font-color');
-    const lsInput = document.getElementById('letter-spacing');
-    const stretchInput = document.getElementById('stretch');
+    const sizeInp = document.getElementById('font-size');
+    const colorInp = document.getElementById('font-color');
+    const boldBtn = document.getElementById('bold-toggle');
+    const lsInp = document.getElementById('letter-spacing');
+    const stInp = document.getElementById('stretch');
     const lsVal = document.getElementById('ls-val');
-    const stretchVal = document.getElementById('stretch-val');
-
-    const tools = document.querySelectorAll('[data-tool]');
+    const stVal = document.getElementById('st-val');
+    const zoomLabel = document.getElementById('zoom-label');
 
     // Helpers
     const genId = () => crypto.randomUUID();
-
-    function setStatusZoom() {
-      zoomLabel.textContent = Math.round(state.scale*100) + '%';
-      wrapper.style.transform = `scale(${state.scale})`;
-    }
-
-    function setTool(tool) {
-      state.tool = tool;
-      tools.forEach(t => t.classList.toggle('active', t.dataset.tool === tool));
-      if (tool === 'select') overlay.style.cursor = 'default';
-      else if (tool === 'image') overlay.style.cursor = 'copy';
-      else overlay.style.cursor = 'crosshair';
-    }
-
-    // Load PDF
-    fileInput.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      await openPdfFile(file);
-    });
-
-    async function openPdfFile(file) {
-      state.pdfBytes = await file.arrayBuffer();
-      state.pdfDoc = await pdfjsLib.getDocument({data: state.pdfBytes}).promise;
-      state.pdfLibDoc = await PDFLib.PDFDocument.load(state.pdfBytes);
-      state.pageNum = 1;
-      state.objects = [];
-      state.selectedId = null;
-      document.getElementById('save-btn').disabled = false;
-      await renderPage();
-    }
-
-    async function renderPage() {
-      const page = await state.pdfDoc.getPage(state.pageNum);
-      const viewport = page.getViewport({ scale: state.scale });
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      overlay.width = viewport.width;
-      overlay.height = viewport.height;
-      wrapper.style.width = viewport.width + 'px';
-      wrapper.style.height = viewport.height + 'px';
-      await page.render({canvasContext: ctx, viewport}).promise;
-      redrawOverlay();
-    }
-
-    function redrawOverlay() {
-      octx.clearRect(0,0,overlay.width, overlay.height);
-      // draw objects
-      for (const obj of state.objects) {
-        drawObject(obj);
-      }
-      // selection
-      if (state.selectedId) {
-        const obj = state.objects.find(o=>o.id===state.selectedId);
-        if (obj) drawSelection(obj);
-      }
-    }
-
-    function drawObject(obj) {
-      if (obj.type === 'whiteout') {
-        octx.fillStyle = 'white';
-        octx.fillRect(obj.x, obj.y, obj.w, obj.h);
-      } else if (obj.type === 'text') {
-        const font = mapCanvasFont(obj);
-        octx.save();
-        octx.fillStyle = obj.color || '#000';
-        octx.font = font;
-        octx.textBaseline = 'alphabetic';
-        octx.letterSpacing = (obj.ls || 0) + 'px'; // some browsers support; fallback handled by manual measure if not
-        octx.translate(obj.x, obj.y);
-        octx.scale(obj.stretch || 1, 1);
-        drawTextWithSpacing(octx, obj.text, 0, 0, obj.ls || 0);
-        octx.restore();
-      } else if (obj.type === 'image' && obj.img) {
-        octx.drawImage(obj.img, obj.x, obj.y, obj.w, obj.h);
-      }
-    }
-
-    function drawTextWithSpacing(ctx2d, text, x, y, ls) {
-      // Fallback letter spacing drawing
-      const letters = text.split('');
-      let cursor = x;
-      for (const ch of letters) {
-        ctx2d.fillText(ch, cursor, y);
-        cursor += ctx2d.measureText(ch).width + ls;
-      }
-    }
-
-    function drawSelection(obj) {
-      const pad = 4;
-      const x = obj.x - pad, y = obj.y - pad, w = obj.w + pad*2, h = obj.h + pad*2;
-      octx.save();
-      octx.strokeStyle = '#3b82f6';
-      octx.lineWidth = 2;
-      octx.setLineDash([4,3]);
-      octx.strokeRect(x, y, w, h);
-      octx.setLineDash([]);
-      octx.restore();
-      // handles
-      const handles = [
-        {cls:'nw', hx:x, hy:y},
-        {cls:'ne', hx:x+w, hy:y},
-        {cls:'sw', hx:x, hy:y+h},
-        {cls:'se', hx:x+w, hy:y+h},
-      ];
-      handles.forEach(h=>{
-        octx.fillStyle = '#fff';
-        octx.strokeStyle = '#3b82f6';
-        octx.lineWidth = 2;
-        octx.beginPath();
-        octx.rect(h.hx-5, h.hy-5, 10, 10);
-        octx.fill(); octx.stroke();
-      });
-    }
-
-    // Hit testing
-    function hitTest(x, y) {
-      for (let i=state.objects.length-1; i>=0; i--) {
-        const o = state.objects[i];
-        if (x>=o.x && x<=o.x+o.w && y>=o.y && y<=o.y+o.h) return o;
-      }
-      return null;
-    }
-
-    // Mouse handlers
-    overlay.addEventListener('mousedown', (e)=>{
-      const {x,y} = getPos(e);
-      state.startBox = {x,y};
-      if (state.tool === 'select') {
-        const obj = hitTest(x,y);
-        state.selectedId = obj ? obj.id : null;
-        if (obj) {
-          // check handles
-          const handle = whichHandle(obj, x, y);
-          if (handle) {
-            state.resizing = true;
-            state.resizeHandle = handle;
-          } else {
-            state.dragging = true;
-            state.dragOffset = {x: x - obj.x, y: y - obj.y};
-          }
-          syncPropBar(obj);
-        } else {
-          syncPropBar(null);
+    const mapFontCanvas = f => f === 'BankCourier' ? '"Courier Prime", Courier, monospace'
+                        : f === 'Times' ? '"Times New Roman", Times, serif'
+                        : 'Helvetica, Arial, sans-serif';
+    const mapFontPdf = (f,bold) => {
+      if (f === 'BankCourier') return bold ? PDFLib.StandardFonts.CourierBold : PDFLib.StandardFonts.Courier;
+      if (f === 'Times') return PDFLib.StandardFonts.TimesRoman;
+      return bold ? PDFLib.StandardFonts.HelveticaBold : PDFLib.StandardFonts.Helvetica;
+    };
+    const isMono = (item) => {
+      // heuristic: fontName contains "Mono" or char widths are nearly equal
+      if ((item.fontName||'').toLowerCase().includes('mono')) return true;
+      if (item.width && item.str && item.str.length>1) {
+        const avg = item.width / item.str.length;
+        let dev = 0;
+        for (const ch of item.str) {
+          const w = item.width / item.str.length;
+          dev += Math.abs(w-avg);
         }
-        redrawOverlay();
-      } else if (state.tool === 'whiteout') {
-        state.dragging = true;
-      } else if (state.tool === 'text') {
-        state.dragging = false;
-      } else if (state.tool === 'image') {
-        imgInput.click();
+        return dev / item.str.length < 0.2 * avg;
       }
+      return false;
+    };
+
+    // Init UI
+    document.querySelectorAll('[data-tool]').forEach(btn=>{
+      btn.addEventListener('click', ()=>setTool(btn.dataset.tool));
     });
+    document.getElementById('open-btn').onclick = ()=>document.getElementById('file-input').click();
+    document.getElementById('file-input').onchange = e=>{ if(e.target.files[0]) openPDF(e.target.files[0]); };
+    document.getElementById('save-btn').onclick = savePDF;
+    document.getElementById('zoom-in').onclick = ()=>{ S.scale=Math.min(3,S.scale+0.1); renderPage(); };
+    document.getElementById('zoom-out').onclick = ()=>{ S.scale=Math.max(0.4,S.scale-0.1); renderPage(); };
+    document.getElementById('delete-btn').onclick = deleteSelected;
+    document.getElementById('img-input').onchange = handleImage;
 
-    overlay.addEventListener('mousemove', (e)=>{
-      const {x,y} = getPos(e);
-      if (state.dragging && state.selectedId) {
-        const obj = state.objects.find(o=>o.id===state.selectedId);
-        if (obj) {
-          obj.x = x - state.dragOffset.x;
-          obj.y = y - state.dragOffset.y;
-          redrawOverlay();
-        }
-      } else if (state.resizing && state.selectedId) {
-        const obj = state.objects.find(o=>o.id===state.selectedId);
-        if (obj) {
-          resizeObject(obj, state.resizeHandle, x, y);
-          redrawOverlay();
-        }
-      } else if (state.tool === 'whiteout' && state.dragging) {
-        redrawOverlay();
-        octx.save();
-        octx.strokeStyle = '#3b82f6';
-        octx.setLineDash([5,3]);
-        octx.strokeRect(state.startBox.x, state.startBox.y, x - state.startBox.x, y - state.startBox.y);
-        octx.restore();
-      }
-    });
+    [fontSel,sizeInp,colorInp,lsInp,stInp].forEach(el=>el.addEventListener('input',applySelectionProps));
+    boldBtn.onclick = ()=>{ boldBtn.classList.toggle('toggled'); applySelectionProps(); };
+    lsInp.addEventListener('input',()=>{lsVal.textContent=lsInp.value+'px';});
+    stInp.addEventListener('input',()=>{stVal.textContent=stInp.value+'%';});
 
-    overlay.addEventListener('mouseup', (e)=>{
-      const {x,y} = getPos(e);
-      if (state.tool === 'whiteout' && state.dragging) {
-        const w = x - state.startBox.x;
-        const h = y - state.startBox.y;
-        if (Math.abs(w) > 4 && Math.abs(h) > 4) {
-          const obj = {
-            id: genId(),
-            type: 'whiteout',
-            x: Math.min(state.startBox.x, x),
-            y: Math.min(state.startBox.y, y),
-            w: Math.abs(w),
-            h: Math.abs(h),
-          };
-          state.objects.push(obj);
-          state.selectedId = obj.id;
-          syncPropBar(obj);
-        }
-      } else if (state.tool === 'text' && !state.dragging) {
-        promptText(x,y);
-      }
-      state.dragging = false;
-      state.resizing = false;
-      state.resizeHandle = null;
-      redrawOverlay();
-    });
+    // Drag-drop PDF
+    const dropOverlay = document.getElementById('drop-overlay');
+    ['dragenter','dragover'].forEach(ev=>document.addEventListener(ev,(e)=>{e.preventDefault(); dropOverlay.classList.add('active');}));
+    ['dragleave','drop'].forEach(ev=>document.addEventListener(ev,(e)=>{e.preventDefault(); dropOverlay.classList.remove('active');}));
+    document.addEventListener('drop',(e)=>{ if(e.dataTransfer.files[0]) openPDF(e.dataTransfer.files[0]); });
 
-    function whichHandle(obj, x, y) {
-      const pad=4;
-      const boxes = {
-        nw: {x: obj.x-pad, y: obj.y-pad},
-        ne: {x: obj.x+obj.w+pad, y: obj.y-pad},
-        sw: {x: obj.x-pad, y: obj.y+obj.h+pad},
-        se: {x: obj.x+obj.w+pad, y: obj.y+obj.h+pad},
-      };
-      for (const k in boxes) {
-        const b = boxes[k];
-        if (Math.abs(x-b.x)<=8 && Math.abs(y-b.y)<=8) return k;
-      }
-      return null;
-    }
-
-    function resizeObject(obj, handle, x, y) {
-      const minSize = 8;
-      if (handle==='nw') {
-        const nx = Math.min(obj.x+obj.w-minSize, x);
-        const ny = Math.min(obj.y+obj.h-minSize, y);
-        obj.w = obj.x+obj.w - nx;
-        obj.h = obj.y+obj.h - ny;
-        obj.x = nx; obj.y = ny;
-      } else if (handle==='ne') {
-        const ny = Math.min(obj.y+obj.h-minSize, y);
-        obj.w = Math.max(minSize, x - obj.x);
-        obj.h = obj.y+obj.h - ny;
-        obj.y = ny;
-      } else if (handle==='sw') {
-        const nx = Math.min(obj.x+obj.w-minSize, x);
-        obj.w = obj.x+obj.w - nx;
-        obj.h = Math.max(minSize, y - obj.y);
-        obj.x = nx;
-      } else if (handle==='se') {
-        obj.w = Math.max(minSize, x - obj.x);
-        obj.h = Math.max(minSize, y - obj.y);
-      }
-    }
-
-    function getPos(e) {
-      const rect = overlay.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / state.scale;
-      const y = (e.clientY - rect.top) / state.scale;
-      return {x,y};
-    }
-
-    // Prompt text entry
-    function promptText(x,y) {
-      const text = prompt('Enter text:');
-      if (!text) return;
-      const font = fontSel.value;
-      const size = parseInt(fontSizeInput.value, 10) || 12;
-      const color = fontColorInput.value || '#000000';
-      const ls = parseFloat(lsInput.value) || 0;
-      const stretch = (parseInt(stretchInput.value,10)||100)/100;
-      // measure
-      octx.save();
-      octx.font = `${size}px ${mapFontFamily(font)}`;
-      const width = measureSpacing(octx, text, ls) * stretch;
-      const height = size*1.2;
-      octx.restore();
-      const obj = {
-        id: genId(),
-        type: 'text',
-        text,
-        x, y,
-        w: width,
-        h: height,
-        font,
-        size,
-        color,
-        ls,
-        stretch,
-      };
-      state.objects.push(obj);
-      state.selectedId = obj.id;
-      syncPropBar(obj);
-    }
-
-    function measureSpacing(ctx2d, text, ls) {
-      const letters = text.split('');
-      let w = 0;
-      for (const ch of letters) {
-        w += ctx2d.measureText(ch).width + ls;
-      }
-      return w - ls; // remove trailing spacing
-    }
-
-    function mapFontFamily(f) {
-      if (f === 'Courier' || f === 'BankCourier') return 'Courier New, monospace';
-      if (f === 'TimesRoman') return 'Times New Roman, serif';
-      return 'Helvetica, Arial, sans-serif';
-    }
-    function mapCanvasFont(obj) {
-      return `${obj.size}px ${mapFontFamily(obj.font)}`;
-    }
-
-    function syncPropBar(obj) {
-      if (!obj || obj.type!=='text') {
-        return;
-      }
-      fontSel.value = obj.font;
-      fontSizeInput.value = obj.size;
-      fontColorInput.value = obj.color || '#000000';
-      lsInput.value = obj.ls ?? 0;
-      stretchInput.value = Math.round((obj.stretch ?? 1)*100);
-      lsVal.textContent = (obj.ls ?? 0) + 'px';
-      stretchVal.textContent = Math.round((obj.stretch ?? 1)*100) + '%';
-    }
-
-    // Property change
-    fontSel.addEventListener('change', ()=>updateSelectedProps());
-    fontSizeInput.addEventListener('change', ()=>updateSelectedProps());
-    fontColorInput.addEventListener('change', ()=>updateSelectedProps());
-    lsInput.addEventListener('input', ()=>{
-      lsVal.textContent = lsInput.value + 'px';
-      updateSelectedProps();
-    });
-    stretchInput.addEventListener('input', ()=>{
-      stretchVal.textContent = stretchInput.value + '%';
-      updateSelectedProps();
-    });
-
-    function updateSelectedProps() {
-      const obj = state.objects.find(o=>o.id===state.selectedId);
-      if (!obj || obj.type!=='text') return;
-      obj.font = fontSel.value;
-      obj.size = parseInt(fontSizeInput.value,10)||obj.size;
-      obj.color = fontColorInput.value;
-      obj.ls = parseFloat(lsInput.value)||0;
-      obj.stretch = (parseInt(stretchInput.value,10)||100)/100;
-      // recompute width/height
-      octx.save();
-      octx.font = `${obj.size}px ${mapFontFamily(obj.font)}`;
-      const width = measureSpacing(octx, obj.text, obj.ls) * obj.stretch;
-      obj.w = width;
-      obj.h = obj.size*1.2;
-      octx.restore();
-      // Bank Courier defaults
-      if (obj.font === 'BankCourier' && lsInput.value === "") {
-        obj.ls = -0.5;
-      }
-      redrawOverlay();
-    }
-
-    // Delete
-    document.getElementById('delete-btn').addEventListener('click', deleteSelected);
-    function deleteSelected() {
-      if (!state.selectedId) return;
-      state.objects = state.objects.filter(o=>o.id!==state.selectedId);
-      state.selectedId = null;
-      redrawOverlay();
-    }
+    // Canvas interactions
+    overlay.addEventListener('mousedown', onDown);
+    overlay.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    overlay.addEventListener('dblclick', onDbl);
 
     // Keyboard
-    document.addEventListener('keydown', (e)=>{
-      if (e.key === 'Delete' || e.key === 'Backspace') {
-        deleteSelected();
-      }
-      if (state.selectedId) {
-        const obj = state.objects.find(o=>o.id===state.selectedId);
+    document.addEventListener('keydown',(e)=>{
+      if (S.selected && !S.editing) {
+        const obj = S.objects.find(o=>o.id===S.selected);
         if (!obj) return;
+        let step = e.shiftKey ? 10 : 1;
         let moved=false;
-        const step = e.shiftKey ? 10 : 1;
-        if (e.key === 'ArrowLeft') { obj.x -= step; moved=true; }
-        else if (e.key === 'ArrowRight') { obj.x += step; moved=true; }
-        else if (e.key === 'ArrowUp') { obj.y -= step; moved=true; }
-        else if (e.key === 'ArrowDown') { obj.y += step; moved=true; }
-        if (moved) { e.preventDefault(); redrawOverlay(); }
+        if (e.key==='ArrowLeft'){obj.x-=step; moved=true;}
+        if (e.key==='ArrowRight'){obj.x+=step; moved=true;}
+        if (e.key==='ArrowUp'){obj.y-=step; moved=true;}
+        if (e.key==='ArrowDown'){obj.y+=step; moved=true;}
+        if (moved){e.preventDefault(); redraw();}
       }
+      if (e.key==='Delete' || e.key==='Backspace') { deleteSelected(); }
     });
 
-    // Zoom controls + ctrl-scroll
-    document.getElementById('zoom-in').addEventListener('click', ()=>{ state.scale = Math.min(state.scale+0.1, 4); setStatusZoom(); renderPage(); });
-    document.getElementById('zoom-out').addEventListener('click', ()=>{ state.scale = Math.max(state.scale-0.1, 0.4); setStatusZoom(); renderPage(); });
-    overlay.addEventListener('wheel', (e)=>{
-      if (e.ctrlKey) {
+    // Zoom by ctrl+scroll
+    overlay.addEventListener('wheel',(e)=>{
+      if (e.ctrlKey){
         e.preventDefault();
-        const delta = e.deltaY < 0 ? 0.1 : -0.1;
-        state.scale = Math.min(4, Math.max(0.4, state.scale + delta));
-        setStatusZoom();
+        S.scale = Math.min(3, Math.max(0.4, S.scale + (e.deltaY<0?0.05:-0.05)));
         renderPage();
       }
     }, {passive:false});
 
-    // Open/save buttons
-    document.getElementById('open-btn').addEventListener('click', ()=>fileInput.click());
-    document.getElementById('save-btn').addEventListener('click', savePDF);
+    // Editor blur
+    editor.addEventListener('blur', commitEdit);
+    editor.addEventListener('keydown',(e)=>{
+      if (e.key==='Enter' && !e.shiftKey){ e.preventDefault(); commitEdit(); }
+      if (e.key==='Escape'){ cancelEdit(); }
+    });
 
-    // Image upload
-    imgInput.addEventListener('change', async (e)=>{
-      const file = e.target.files[0];
-      if (!file) return;
+    function setTool(t){
+      if (S.editing) commitEdit();
+      S.tool=t;
+      document.querySelectorAll('[data-tool]').forEach(btn=>btn.classList.toggle('active',btn.dataset.tool===t));
+      overlay.style.cursor = t==='select'?'default':(t==='image'?'copy':'crosshair');
+      if (t!=='select') S.selected=null;
+      redraw();
+    }
+
+    async function openPDF(file){
+      S.pdfBytes = await file.arrayBuffer();
+      S.pdfDoc = await pdfjsLib.getDocument({data:S.pdfBytes}).promise;
+      S.pdfLibDoc = await PDFLib.PDFDocument.load(S.pdfBytes);
+      S.pageNum = 1;
+      S.objects = [];
+      S.selected = null;
+      document.getElementById('save-btn').disabled = false;
+      await renderPage();
+    }
+
+    async function renderPage(){
+      if (!S.pdfDoc) return;
+      const page = await S.pdfDoc.getPage(S.pageNum);
+      const viewport = page.getViewport({scale:S.scale});
+      [pdfCanvas, overlay].forEach(c=>{
+        c.width = viewport.width; c.height = viewport.height;
+      });
+      wrapper.style.width = viewport.width+'px';
+      wrapper.style.height = viewport.height+'px';
+      await page.render({canvasContext:pdfCtx, viewport}).promise;
+
+      // capture text items for smart detection
+      const textContent = await page.getTextContent();
+      S.textItems = textContent.items.map(it=>{
+        const tx = it.transform;
+        const fontSize = Math.hypot(tx[0], tx[1]);
+        // approximate bbox
+        const w = it.width;
+        const h = fontSize;
+        const x = tx[4];
+        const y = viewport.height - tx[5];
+        return { ...it, bbox:{x, y-h, w, h}, fontSize };
+      });
+
+      zoomLabel.textContent = Math.round(S.scale*100)+'%';
+      redraw();
+    }
+
+    function redraw(){
+      octx.clearRect(0,0,overlay.width,overlay.height);
+      // Draw objects
+      for (const obj of S.objects){
+        drawObj(obj);
+      }
+      // selection
+      if (S.selected && !S.editing){
+        const obj = S.objects.find(o=>o.id===S.selected);
+        if (obj) drawSelection(obj);
+      }
+    }
+
+    function drawObj(o){
+      const x = o.x * S.scale, y = o.y * S.scale, w = o.w * S.scale, h = o.h * S.scale;
+      if (o.type==='whiteout'){
+        octx.fillStyle='#fff';
+        octx.fillRect(x,y,w,h);
+      } else if (o.type==='image' && o.img){
+        octx.drawImage(o.img,x,y,w,h);
+      } else if (o.type==='text'){
+        octx.save();
+        octx.fillStyle = o.color || '#000';
+        const weight = o.bold ? 'bold ' : '';
+        octx.font = `${weight}${o.size * S.scale}px ${mapFontCanvas(o.font)}`;
+        octx.textBaseline='top';
+        octx.translate(x,y);
+        octx.scale(o.stretch||1,1);
+        drawSpaced(octx, o.text, 0,0, (o.ls||0)*S.scale);
+        octx.restore();
+      }
+    }
+    function drawSpaced(ctx2d, text, x, y, ls){
+      let cur=x;
+      for(const ch of text){
+        ctx2d.fillText(ch, cur, y);
+        cur += ctx2d.measureText(ch).width + ls;
+      }
+    }
+
+    function drawSelection(o){
+      const x = o.x*S.scale, y=o.y*S.scale, w=o.w*S.scale, h=o.h*S.scale;
+      octx.save();
+      octx.strokeStyle = '#cceeff';
+      octx.lineWidth = 2;
+      octx.setLineDash([4,2]);
+      octx.strokeRect(x,y,w,h);
+      octx.setLineDash([]);
+      octx.strokeStyle = '#8ecae6';
+      octx.strokeRect(x,y,w,h);
+      // handles
+      const pts = [[x,y],[x+w,y],[x,y+h],[x+w,y+h]];
+      octx.fillStyle='#fff';
+      octx.lineWidth=2;
+      octx.strokeStyle='#8ecae6';
+      for(const [hx,hy] of pts){
+        octx.fillRect(hx-5,hy-5,10,10);
+        octx.strokeRect(hx-5,hy-5,10,10);
+      }
+      octx.restore();
+    }
+
+    function onDown(e){
+      const pos = getPos(e);
+      if (S.tool==='select'){
+        const hit = hitTest(pos.x,pos.y);
+        if (hit){
+          S.selected = hit.id;
+          const handle = handleHit(hit,pos.x,pos.y);
+          if (handle){
+            S.resizing = handle;
+          } else {
+            S.isDragging=true;
+            S.dragOffset={x:pos.x-hit.x,y:pos.y-hit.y};
+          }
+          syncProps(hit);
+        } else {
+          S.selected=null;
+        }
+        redraw();
+      } else if (S.tool==='whiteout'){
+        S.newRectStart = pos;
+      } else if (S.tool==='text'){
+        // Smart detection: try find text item under click
+        const item = textHit(pos.x,pos.y);
+        if (item){
+          if (isMono(item)) fontSel.value='BankCourier';
+          const sz = Math.round(item.fontSize);
+          sizeInp.value = sz;
+          syncLsStDisplay();
+        }
+        createTextAt(pos.x,pos.y);
+      } else if (S.tool==='image'){
+        document.getElementById('img-input').click();
+      }
+    }
+
+    function onMove(e){
+      const pos = getPos(e);
+      if (S.tool==='whiteout' && S.newRectStart){
+        redraw();
+        const x0=S.newRectStart.x*S.scale, y0=S.newRectStart.y*S.scale;
+        const w=pos.rawX - x0, h=pos.rawY - y0;
+        octx.fillStyle='rgba(204,238,255,0.25)';
+        octx.strokeStyle='#0066cc';
+        octx.fillRect(x0,y0,w,h); octx.strokeRect(x0,y0,w,h);
+      }
+      if (S.isDragging && S.selected){
+        const obj = S.objects.find(o=>o.id===S.selected);
+        if (obj){
+          obj.x = pos.x - S.dragOffset.x;
+          obj.y = pos.y - S.dragOffset.y;
+          redraw();
+        }
+      }
+      if (S.resizing && S.selected){
+        const o = S.objects.find(o=>o.id===S.selected);
+        if (o){
+          resizeObj(o, S.resizing, pos.x, pos.y);
+          redraw();
+        }
+      }
+    }
+
+    function onUp(e){
+      if (S.tool==='whiteout' && S.newRectStart){
+        const pos = getPos(e);
+        const x = Math.min(pos.x, S.newRectStart.x);
+        const y = Math.min(pos.y, S.newRectStart.y);
+        const w = Math.abs(pos.x - S.newRectStart.x);
+        const h = Math.abs(pos.y - S.newRectStart.y);
+        if (w>2 && h>2){
+          const obj={id:genId(), type:'whiteout', x,y,w,h};
+          S.objects.push(obj);
+          S.selected = obj.id;
+        }
+        S.newRectStart=null; redraw();
+      }
+      S.isDragging=false; S.resizing=null;
+    }
+
+    function onDbl(e){
+      const pos = getPos(e);
+      const hit = hitTest(pos.x,pos.y);
+      if (hit && hit.type==='text'){
+        S.selected = hit.id;
+        startEdit(hit);
+      }
+    }
+
+    function hitTest(x,y){
+      for (let i=S.objects.length-1;i>=0;i--){
+        const o=S.objects[i];
+        if (x>=o.x && x<=o.x+o.w && y>=o.y && y<=o.y+o.h) return o;
+      }
+      return null;
+    }
+    function handleHit(o,x,y){
+      const hs=6;
+      const corners=[
+        {n:'nw',x:o.x,y:o.y},
+        {n:'ne',x:o.x+o.w,y:o.y},
+        {n:'sw',x:o.x,y:o.y+o.h},
+        {n:'se',x:o.x+o.w,y:o.y+o.h},
+      ];
+      for (const c of corners){
+        if (Math.abs(x-c.x)<=hs && Math.abs(y-c.y)<=hs) return c.n;
+      }
+      return null;
+    }
+    function resizeObj(o,handle,x,y){
+      const min=4;
+      if (handle==='nw'){ const nx=Math.min(o.x+o.w-min,x); const ny=Math.min(o.y+o.h-min,y); o.w=o.x+o.w-nx; o.h=o.y+o.h-ny; o.x=nx; o.y=ny; }
+      if (handle==='ne'){ const ny=Math.min(o.y+o.h-min,y); o.w=Math.max(min,x-o.x); o.h=o.y+o.h-ny; o.y=ny; }
+      if (handle==='sw'){ const nx=Math.min(o.x+o.w-min,x); o.w=o.x+o.w-nx; o.h=Math.max(min,y-o.y); o.x=nx; }
+      if (handle==='se'){ o.w=Math.max(min,x-o.x); o.h=Math.max(min,y-o.y); }
+    }
+
+    // Text creation with auto mask
+    function createTextAt(x,y){
+      const maskId = genId();
+      const textId = genId();
+      const size = parseInt(sizeInp.value)||12;
+      const h = size*1.2;
+      const w = 120;
+
+      // whiteout mask behind text
+      S.objects.push({id:maskId,type:'whiteout',x,y,w,h});
+
+      const obj = {
+        id:textId,type:'text',x,y,w,h,
+        text:'',
+        font: fontSel.value,
+        size,
+        color: colorInp.value,
+        ls: parseFloat(lsInp.value)||0,
+        stretch: (parseInt(stInp.value)||100)/100,
+        bold: boldBtn.classList.contains('toggled'),
+        maskId
+      };
+      S.objects.push(obj);
+      S.selected = textId;
+      startEdit(obj);
+    }
+
+    function startEdit(obj){
+      S.editing=true;
+      const x = obj.x*S.scale, y=obj.y*S.scale;
+      editor.style.display='block';
+      editor.style.left = x+'px';
+      editor.style.top  = y+'px';
+      editor.style.minWidth = (obj.w*S.scale)+'px';
+      editor.style.height = (obj.h*S.scale)+'px';
+      editor.style.fontFamily = mapFontCanvas(obj.font);
+      editor.style.fontSize = (obj.size*S.scale)+'px';
+      editor.style.color = obj.color;
+      editor.style.fontWeight = obj.bold?'700':'400';
+      editor.style.letterSpacing = (obj.ls*S.scale)+'px';
+      editor.style.transform = `scaleX(${obj.stretch||1})`;
+      editor.value = obj.text;
+      editor.focus();
+      redraw();
+    }
+    function commitEdit(){
+      if (!S.editing) return;
+      const obj = S.objects.find(o=>o.id===S.selected);
+      if (obj && obj.type==='text'){
+        obj.text = editor.value;
+        // measure width
+        octx.save();
+        octx.font = `${obj.bold?'bold ':''}${obj.size}px ${mapFontCanvas(obj.font)}`;
+        const w = measureSpaced(octx,obj.text,obj.ls)*(obj.stretch||1);
+        obj.w = Math.max(12, w);
+        obj.h = obj.size*1.2;
+        octx.restore();
+        // sync mask
+        if (obj.maskId){
+          const m = S.objects.find(o=>o.id===obj.maskId);
+          if (m){ m.x=obj.x; m.y=obj.y; m.w=obj.w; m.h=obj.h; }
+        }
+      }
+      editor.style.display='none';
+      S.editing=false;
+      redraw();
+    }
+    function cancelEdit(){
+      S.editing=false; editor.style.display='none'; redraw();
+    }
+    function measureSpaced(ctx,text,ls){
+      let w=0;
+      for(const ch of text){ w+=ctx.measureText(ch).width + ls; }
+      return w - ls;
+    }
+
+    function applySelectionProps(){
+      const obj = S.objects.find(o=>o.id===S.selected);
+      if (!obj || obj.type!=='text') return;
+      obj.font = fontSel.value;
+      obj.size = parseInt(sizeInp.value)||12;
+      obj.color = colorInp.value;
+      obj.ls = parseFloat(lsInp.value)||0;
+      obj.stretch = (parseInt(stInp.value)||100)/100;
+      obj.bold = boldBtn.classList.contains('toggled');
+      // recompute size
+      octx.save();
+      octx.font = `${obj.bold?'bold ':''}${obj.size}px ${mapFontCanvas(obj.font)}`;
+      obj.w = measureSpaced(octx,obj.text,obj.ls)*(obj.stretch||1);
+      obj.h = obj.size*1.2;
+      octx.restore();
+      if (obj.maskId){
+        const m = S.objects.find(o=>o.id===obj.maskId);
+        if (m){ m.x=obj.x; m.y=obj.y; m.w=obj.w; m.h=obj.h; }
+      }
+      if (S.editing){
+        editor.style.fontFamily = mapFontCanvas(obj.font);
+        editor.style.fontSize = (obj.size*S.scale)+'px';
+        editor.style.color = obj.color;
+        editor.style.fontWeight = obj.bold?'700':'400';
+        editor.style.letterSpacing = (obj.ls*S.scale)+'px';
+        editor.style.transform = `scaleX(${obj.stretch||1})`;
+      }
+      redraw();
+    }
+
+    function syncProps(obj){
+      if (!obj || obj.type!=='text') return;
+      fontSel.value = obj.font;
+      sizeInp.value = obj.size;
+      colorInp.value = obj.color;
+      lsInp.value = obj.ls||0; lsVal.textContent=lsInp.value+'px';
+      stInp.value = Math.round((obj.stretch||1)*100); stVal.textContent=stInp.value+'%';
+      boldBtn.classList.toggle('toggled', !!obj.bold);
+    }
+
+    function textHit(x,y){
+      return S.textItems.find(it=>{
+        const b=it.bbox;
+        return x>=b.x && x<=b.x+b.w && y>=b.y && y<=b.y+b.h;
+      });
+    }
+
+    function deleteSelected(){
+      if (!S.selected) return;
+      const obj = S.objects.find(o=>o.id===S.selected);
+      if (obj && obj.maskId){
+        S.objects = S.objects.filter(o=>o.id!==obj.maskId);
+      }
+      S.objects = S.objects.filter(o=>o.id!==S.selected);
+      S.selected=null; redraw();
+    }
+
+    async function handleImage(e){
+      const f = e.target.files[0];
+      if (!f) return;
       const img = new Image();
       img.onload = ()=>{
-        const w = img.width, h = img.height;
-        const obj = { id: genId(), type:'image', x:40, y:40, w: w/2, h:h/2, img, imgFile:file };
-        state.objects.push(obj);
-        state.selectedId = obj.id;
-        redrawOverlay();
+        const ratio = img.height/img.width;
+        const w=180, h=180*ratio;
+        const obj={id:genId(), type:'image', x:40, y:40, w, h, img, imgFile:f};
+        S.objects.push(obj); S.selected=obj.id; redraw();
       };
-      img.src = URL.createObjectURL(file);
-    });
+      img.src = URL.createObjectURL(f);
+    }
 
-    // Whiteout drag fix
-    overlay.addEventListener('mouseleave', ()=>{ state.dragging=false; state.resizing=false; });
-
-    // Save (burn in)
-    async function savePDF() {
-      if (!state.pdfLibDoc) return;
-      const pdfDoc = await PDFLib.PDFDocument.load(state.pdfBytes);
-      const page = pdfDoc.getPages()[state.pageNum-1];
-      const { height } = page.getSize();
+    async function savePDF(){
+      if (!S.pdfLibDoc) return;
+      const doc = await PDFLib.PDFDocument.load(S.pdfBytes);
+      const page = doc.getPages()[S.pageNum-1];
+      const {height} = page.getSize();
 
       const fontCache = {};
-      async function getFont(family, weight='reg') {
-        const key = `${family}-${weight}`;
+      async function getFont(f,b){
+        const key=f+(b?'b':'n');
         if (fontCache[key]) return fontCache[key];
-        let font;
-        if (family === 'Courier' || family === 'BankCourier') {
-          font = await pdfDoc.embedFont(weight==='bold' ? PDFLib.StandardFonts.CourierBold : PDFLib.StandardFonts.Courier);
-        } else if (family === 'TimesRoman') {
-          font = await pdfDoc.embedFont(weight==='bold' ? PDFLib.StandardFonts.TimesRomanBold : PDFLib.StandardFonts.TimesRoman);
-        } else {
-          font = await pdfDoc.embedFont(weight==='bold' ? PDFLib.StandardFonts.HelveticaBold : PDFLib.StandardFonts.Helvetica);
-        }
-        fontCache[key]=font;
-        return font;
+        const name = mapFontPdf(f,b);
+        const font = await doc.embedFont(name);
+        fontCache[key]=font; return font;
       }
 
-      for (const obj of state.objects) {
-        if (obj.type === 'whiteout') {
+      for (const o of S.objects){
+        if (o.type==='whiteout'){
           page.drawRectangle({
-            x: obj.x / state.scale,
-            y: height - (obj.y + obj.h)/state.scale,
-            width: obj.w / state.scale,
-            height: obj.h / state.scale,
+            x:o.x, y:height - (o.y + o.h),
+            width:o.w, height:o.h,
             color: PDFLib.rgb(1,1,1)
           });
-        } else if (obj.type === 'text') {
-          const font = await getFont(obj.font);
-          const colorRgb = hexToRgb(obj.color||'#000000');
-          const size = obj.size / state.scale;
-          const ls = (obj.ls||0) / state.scale;
-          const stretch = obj.stretch || 1;
-
-          // Manual letter rendering for spacing/stretch
-          let cursorX = obj.x / state.scale;
-          const baseY = height - (obj.y)/state.scale;
-          for (const ch of obj.text.split('')) {
-            const w = font.widthOfTextAtSize(ch, size) * stretch;
-            page.drawText(ch, {
-              x: cursorX,
-              y: baseY,
-              size,
-              font,
-              color: PDFLib.rgb(colorRgb.r/255, colorRgb.g/255, colorRgb.b/255),
-              xScale: stretch
+        } else if (o.type==='text'){
+          const font = await getFont(o.font, o.bold);
+          const col = hexToRgb(o.color||'#000000');
+          const size = o.size;
+          const ls = o.ls||0;
+          const stretch = o.stretch||1;
+          let cur = o.x;
+          const baseY = height - o.y - size*0.8;
+          for (const ch of o.text){
+            const w = font.widthOfTextAtSize(ch, size)*stretch;
+            page.drawText(ch,{
+              x:cur, y:baseY,
+              size, font,
+              xScale: stretch,
+              color: PDFLib.rgb(col.r/255,col.g/255,col.b/255)
             });
-            cursorX += w + ls;
+            cur += w + ls;
           }
-        } else if (obj.type === 'image' && obj.imgFile) {
-          const imgBytes = await obj.imgFile.arrayBuffer();
-          let embed;
-          if (obj.imgFile.type === 'image/png') embed = await pdfDoc.embedPng(imgBytes);
-          else embed = await pdfDoc.embedJpg(imgBytes);
-          const pngDims = embed.scale(1);
-          const w = obj.w / state.scale;
-          const h = obj.h / state.scale;
-          const x = obj.x / state.scale;
-          const y = height - (obj.y + obj.h)/state.scale;
-          page.drawImage(embed, { x, y, width: w, height: h });
+        } else if (o.type==='image' && o.imgFile){
+          const bytes = await o.imgFile.arrayBuffer();
+          let embedded;
+          if (o.imgFile.type==='image/png') embedded = await doc.embedPng(bytes);
+          else embedded = await doc.embedJpg(bytes);
+          page.drawImage(embedded,{
+            x:o.x, y:height - (o.y + o.h),
+            width:o.w, height:o.h
+          });
         }
       }
-
-      const pdfBytes = await pdfDoc.save();
-      const blob = new Blob([pdfBytes], {type:'application/pdf'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = 'bank-edit.pdf'; a.click();
-      URL.revokeObjectURL(url);
+      const out = await doc.save();
+      const blob = new Blob([out], {type:'application/pdf'});
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob); a.download='Alta_Edited.pdf'; a.click();
+      URL.revokeObjectURL(a.href);
     }
 
-    function hexToRgb(hex) {
-      const res = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-      return res ? {r: parseInt(res[1],16), g: parseInt(res[2],16), b: parseInt(res[3],16)} : {r:0,g:0,b:0};
+    function hexToRgb(hex){
+      const v=parseInt(hex.slice(1),16);
+      return {r:(v>>16)&255, g:(v>>8)&255, b:v&255};
     }
 
-    // Drag-drop PDF
-    ['dragenter','dragover'].forEach(ev=>{
-      document.addEventListener(ev, e=>{
-        e.preventDefault(); e.stopPropagation();
-        dropzone.classList.add('show');
-      });
-    });
-    ['dragleave','drop'].forEach(ev=>{
-      document.addEventListener(ev, e=>{
-        e.preventDefault(); e.stopPropagation();
-        if (ev==='drop') {
-          const f = e.dataTransfer.files[0];
-          if (f && f.type==='application/pdf') openPdfFile(f);
-        }
-        dropzone.classList.remove('show');
-      });
-    });
+    function getPos(e){
+      const rect=overlay.getBoundingClientRect();
+      const rawX = e.clientX - rect.left;
+      const rawY = e.clientY - rect.top;
+      return {x: rawX / S.scale, y: rawY / S.scale, rawX, rawY};
+    }
 
-    // Init
+    function syncLsStDisplay(){
+      lsVal.textContent = lsInp.value + 'px';
+      stVal.textContent = stInp.value + '%';
+    }
+
+    // Start
     setTool('select');
-    setStatusZoom();
-    tools.forEach(btn=>{
-      btn.addEventListener('click', ()=>setTool(btn.dataset.tool));
-    });
+    syncLsStDisplay();
   </script>
 </body>
 </html>
