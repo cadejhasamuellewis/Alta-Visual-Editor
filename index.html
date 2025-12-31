@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Alta Pro - Bank Grade Editor</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alta Pro - Bank Grade Editor</title>
 
   <!-- Fonts & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <!-- Courier Prime used to mimic “Bank Courier” -->
-  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Courier Prime is used to mimic “Bank Courier” -->
+  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet" />
 
   <!-- PDF.js / PDF-Lib (compatible versions) -->
@@ -19,13 +19,13 @@
 
   <style>
     :root {
-      --bg-app: #f0f2f5;
+      --bg-app: #f1f5f9;
       --bg-panel: #ffffff;
       --accent: #cceeff;
-      --accent-border: #99d1f2;
+      --accent-dark: #99d1f2;
       --accent-active: #0066cc;
-      --border: #e5e7eb;
-      --text: #1f2937;
+      --text: #334155;
+      --border: #cbd5e1;
     }
     * { box-sizing: border-box; user-select: none; }
     body {
@@ -36,165 +36,185 @@
 
     /* Ribbon */
     .ribbon {
-      background: var(--bg-panel); border-bottom: 1px solid var(--border);
-      height: 96px; display: flex; align-items: stretch; padding: 0 16px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05); z-index: 100; gap: 10px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      height: 100px;
+      display: flex; align-items: stretch;
+      padding: 0 12px;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+      z-index: 50; gap: 4px;
     }
-    .brand {
-      display: flex; align-items: center; font-weight: 800; font-size: 20px;
-      color: var(--text); padding-right: 16px; margin-right: 8px; border-right: 1px solid var(--border);
-      gap: 8px;
+    .brand-section {
+      display: flex; flex-direction: column; justify-content: center;
+      padding-right: 16px; margin-right: 8px;
+      border-right: 1px solid var(--border);
+      color: #0f172a; font-weight: 800; font-size: 18px; letter-spacing: -0.5px;
     }
-    .group {
-      display: flex; align-items: center; gap: 6px; padding: 10px 0; position: relative;
+    .tool-group {
+      display: flex; align-items: center; gap: 4px; padding: 6px 4px;
+      position: relative;
     }
-    .group::after {
-      content: ''; position: absolute; right: -8px; top: 14px; bottom: 14px;
+    .tool-group::after {
+      content: ''; position: absolute; right: 0; top: 15px; bottom: 15px;
       width: 1px; background: var(--border);
     }
-    .group:last-child::after { display: none; }
+    .tool-group:last-child::after { display: none; }
 
-    .btn-tool {
+    .btn-large {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      min-width: 56px; height: 72px;
-      border-radius: 6px; border: 1px solid transparent; background: transparent;
-      cursor: pointer; color: #4b5563; gap: 6px; transition: all .12s;
-      font-size: 11px; font-weight: 600;
+      height: 100%; min-width: 55px; padding: 0 8px;
+      background: transparent; border: 1px solid transparent; border-radius: 6px;
+      color: #64748b; cursor: pointer; transition: all 0.1s;
+      gap: 6px;
     }
-    .btn-tool i { font-size: 18px; }
-    .btn-tool:hover { background: #f8fafc; }
-    .btn-tool.active {
-      background: var(--accent); border-color: var(--accent-border); color: var(--accent-active);
+    .btn-large i { font-size: 20px; margin-bottom: 2px; }
+    .btn-large span { font-size: 11px; font-weight: 600; }
+    .btn-large:hover { background: #f8fafc; color: var(--accent-active); }
+    .btn-large.active {
+      background: var(--accent); border-color: var(--accent-dark); color: var(--accent-active);
     }
-    .btn-tool.active i { color: var(--accent-active); }
+    .btn-large:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    .btn-mini {
-      width: 32px; height: 32px; border-radius: 6px; border: 1px solid transparent;
-      background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center;
-      transition: all .12s; color: #4b5563;
+    .action-col { display: flex; flex-direction: column; justify-content: center; gap: 4px; height: 100%; }
+    .action-row { display: flex; gap: 2px; }
+    .btn-icon {
+      width: 28px; height: 28px;
+      border: 1px solid transparent; background: transparent; border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: #475569; transition: all .12s;
     }
-    .btn-mini:hover { background: #f8fafc; border-color: var(--border); }
-    .btn-mini.active { background: var(--accent); border-color: var(--accent-border); color: var(--accent-active); }
+    .btn-icon:hover { background: #f1f5f9; border-color: var(--border); }
+    .btn-icon.active { background: var(--accent); border-color: var(--accent-dark); color: var(--accent-active); }
+    .btn-icon i { font-size: 13px; }
 
-    select, input[type=number], input[type=color] {
-      height: 32px; border: 1px solid var(--border); border-radius: 4px;
-      font-size: 12px; padding: 0 8px; color: #334155; background: #fff;
+    select, input[type=number] {
+      height: 28px; border: 1px solid var(--border); border-radius: 4px;
+      font-size: 12px; padding-left: 6px; color: #334155;
     }
-    input[type=number] { width: 52px; }
-    input[type=color] { width: 32px; padding: 0; border: 1px solid var(--border); cursor: pointer; }
+    select { width: 130px; }
+    input[type=number] { width: 50px; }
+    input[type=color] {
+      width: 28px; height: 28px; padding: 0; border: none; cursor: pointer;
+    }
 
     /* Workspace */
     #workspace {
-      flex: 1; background: #525659; overflow: auto;
-      display: flex; justify-content: center; padding: 32px; position: relative;
+      flex: 1; background: #475569;
+      overflow: auto; display: flex; justify-content: center; padding: 40px; position: relative;
     }
-    #canvas-wrap {
-      position: relative; background: #fff;
-      box-shadow: 0 10px 24px rgba(0,0,0,0.25); transform-origin: top left;
+    #canvas-container {
+      position: relative; background: white;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5), 0 8px 10px -6px rgba(0,0,0,0.5);
     }
     canvas { position: absolute; top: 0; left: 0; }
     #pdf-layer { z-index: 1; }
-    #ui-layer { z-index: 2; cursor: crosshair; }
+    #ui-layer { z-index: 10; cursor: crosshair; }
 
     /* Inline editor */
-    #editor {
-      position: absolute; z-index: 30; display: none;
-      background: transparent; border: 1px dashed #0066cc; outline: none;
-      padding: 0; margin: 0; resize: none; overflow: hidden; white-space: pre;
-      line-height: 1.1; transform-origin: top left;
+    #inline-editor {
+      position: absolute; z-index: 100;
+      background: transparent; padding: 0; margin: 0;
+      border: 1px dashed #0066cc; outline: none;
+      resize: none; overflow: hidden; white-space: pre;
+      line-height: 1.15; display: none; transform-origin: top left;
     }
 
-    /* Drop overlay */
-    #drop-zone {
-      position: fixed; inset: 0; background: rgba(255,255,255,0.96); z-index: 999;
-      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
-      color: #334155;
+    /* Upload overlay */
+    #upload-overlay {
+      position: fixed; inset: 0; z-index: 999;
+      background: rgba(255,255,255,0.95);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
     }
-    #drop-zone.hidden { display: none; }
-    .upload-btn {
-      padding: 12px 24px; background: var(--accent); border: 1px solid var(--accent-border);
-      border-radius: 8px; font-weight: 700; color: var(--accent-active); cursor: pointer;
+    #upload-overlay.hidden { display: none; }
+    .big-upload-btn {
+      padding: 16px 32px; font-size: 16px; font-weight: 700;
+      color: var(--accent-active); background: var(--accent);
+      border: 2px solid var(--accent-dark); border-radius: 8px; cursor: pointer; transition: transform 0.1s;
     }
+    .big-upload-btn:hover { transform: scale(1.02); }
+
   </style>
 </head>
 <body>
 
-  <!-- Ribbon -->
   <div class="ribbon">
-    <div class="brand"><i class="fa-solid fa-file-contract" style="color:#0066cc;"></i>ALTA</div>
+    <div class="brand-section">
+      <i class="fa-solid fa-layer-group" style="color:var(--accent-active); margin-bottom:4px;"></i>
+      ALTA
+    </div>
 
     <!-- Group 1: File -->
-    <div class="group">
-      <button class="btn-tool" id="btn-open"><i class="fa-solid fa-folder-open"></i><span>Open</span></button>
-      <button class="btn-tool" id="btn-save" disabled><i class="fa-solid fa-floppy-disk"></i><span>Save</span></button>
-      <button class="btn-tool" id="btn-print"><i class="fa-solid fa-print"></i><span>Print</span></button>
+    <div class="tool-group">
+      <button class="btn-large" id="btn-open"><i class="fa-regular fa-folder-open"></i><span>Open</span></button>
+      <button class="btn-large" id="btn-save" disabled><i class="fa-regular fa-floppy-disk"></i><span>Save</span></button>
+      <button class="btn-large" id="btn-print"><i class="fa-solid fa-print"></i><span>Print</span></button>
     </div>
 
     <!-- Group 2: Edit -->
-    <div class="group">
-      <div style="display:flex; flex-direction:column; gap:6px;">
-        <div style="display:flex; gap:6px;">
-          <button class="btn-mini" id="btn-undo" title="Undo"><i class="fa-solid fa-rotate-left"></i></button>
-          <button class="btn-mini" id="btn-redo" title="Redo"><i class="fa-solid fa-rotate-right"></i></button>
-          <button class="btn-mini" id="btn-delete" title="Delete"><i class="fa-solid fa-trash" style="color:#ef4444;"></i></button>
+    <div class="tool-group">
+      <div class="action-col">
+        <div class="action-row">
+          <button class="btn-icon" id="btn-undo" title="Undo"><i class="fa-solid fa-rotate-left"></i></button>
+          <button class="btn-icon" id="btn-redo" title="Redo"><i class="fa-solid fa-rotate-right"></i></button>
+          <button class="btn-icon" id="btn-delete" title="Delete"><i class="fa-solid fa-trash" style="color:#ef4444;"></i></button>
         </div>
       </div>
     </div>
 
     <!-- Group 3: Tools -->
-    <div class="group">
-      <button class="btn-tool active" data-tool="select"><i class="fa-solid fa-arrow-pointer"></i><span>Select</span></button>
-      <button class="btn-tool" data-tool="text"><i class="fa-solid fa-font"></i><span>Text</span></button>
-      <button class="btn-tool" data-tool="whiteout"><i class="fa-solid fa-eraser"></i><span>Erase</span></button>
-      <button class="btn-tool" data-tool="image"><i class="fa-regular fa-image"></i><span>Image</span></button>
+    <div class="tool-group">
+      <button class="btn-large active" data-tool="select"><i class="fa-solid fa-arrow-pointer"></i><span>Select</span></button>
+      <button class="btn-large" data-tool="text"><i class="fa-solid fa-font"></i><span>Text</span></button>
+      <button class="btn-large" data-tool="whiteout"><i class="fa-solid fa-eraser"></i><span>Erase</span></button>
+      <button class="btn-large" data-tool="image"><i class="fa-regular fa-image"></i><span>Image</span></button>
     </div>
 
     <!-- Group 4: Formatting -->
-    <div class="group">
-      <div style="display:flex; flex-direction:column; gap:6px;">
-        <div style="display:flex; gap:6px;">
+    <div class="tool-group">
+      <div class="action-col">
+        <div class="action-row">
           <select id="font-family">
             <option value="BankCourier">Bank Courier</option>
             <option value="Helvetica">Helvetica</option>
             <option value="Times">Times Roman</option>
           </select>
           <input type="number" id="font-size" value="12" min="6" max="96">
-          <input type="color" id="font-color" value="#000000">
-          <button class="btn-mini" id="btn-bold" title="Bold / Darkness"><i class="fa-solid fa-bold"></i></button>
         </div>
-        <div style="display:flex; gap:6px;">
-          <button class="btn-mini" id="align-left" title="Align Left"><i class="fa-solid fa-align-left"></i></button>
-          <button class="btn-mini" id="align-center" title="Align Center"><i class="fa-solid fa-align-center"></i></button>
-          <button class="btn-mini" id="align-right" title="Align Right"><i class="fa-solid fa-align-right"></i></button>
+        <div class="action-row">
+          <button class="btn-icon" id="btn-bold" title="Bold / Darkness"><i class="fa-solid fa-bold"></i></button>
+          <input type="color" id="font-color" value="#000000">
+          <button class="btn-icon" id="align-left" title="Align Left"><i class="fa-solid fa-align-left"></i></button>
+          <button class="btn-icon" id="align-center" title="Align Center"><i class="fa-solid fa-align-center"></i></button>
+          <button class="btn-icon" id="align-right" title="Align Right"><i class="fa-solid fa-align-right"></i></button>
         </div>
       </div>
     </div>
 
     <!-- Group 5: View -->
-    <div class="group" style="margin-left:auto;">
-      <button class="btn-mini" id="zoom-out"><i class="fa-solid fa-minus"></i></button>
+    <div class="tool-group" style="margin-left:auto;">
+      <button class="btn-icon" id="zoom-out"><i class="fa-solid fa-minus"></i></button>
       <span style="font-size:12px; min-width:48px; text-align:center;" id="zoom-val">100%</span>
-      <button class="btn-mini" id="zoom-in"><i class="fa-solid fa-plus"></i></button>
+      <button class="btn-icon" id="zoom-in"><i class="fa-solid fa-plus"></i></button>
     </div>
   </div>
 
   <!-- Workspace -->
   <div id="workspace">
-    <div id="canvas-wrap">
+    <div id="canvas-container">
       <canvas id="pdf-layer"></canvas>
       <canvas id="ui-layer"></canvas>
-      <textarea id="editor"></textarea>
+      <textarea id="inline-editor"></textarea>
     </div>
   </div>
 
-  <!-- Drop overlay -->
-  <div id="drop-zone">
+  <!-- Upload Overlay -->
+  <div id="upload-overlay">
     <i class="fa-solid fa-cloud-arrow-up fa-4x" style="color:#cbd5e1;"></i>
     <h2 style="margin:6px 0 0 0;">Upload PDF Document</h2>
-    <button class="upload-btn" onclick="document.getElementById('file-in').click()">Browse Files</button>
+    <button class="big-upload-btn" onclick="document.getElementById('file-in').click()">Browse Files</button>
   </div>
 
-  <!-- Hidden inputs -->
+  <!-- Hidden Inputs -->
   <input type="file" id="file-in" accept="application/pdf" style="display:none">
   <input type="file" id="img-in" accept="image/*" style="display:none">
 
@@ -204,16 +224,17 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
 const S = {
   pdf: null, doc: null, bytes: null, page: 1, scale: 1.2,
   tool: 'select', objs: [], sel: null,
-  isEdit: false, drag: null, resize: null, history: [], hi: -1
+  isEdit: false, drag: null, resize: null,
+  history: [], hi: -1
 };
 
 // DOM
-const wrap = document.getElementById('canvas-wrap');
+const wrap = document.getElementById('canvas-container');
 const pdfC = document.getElementById('pdf-layer');
 const uiC  = document.getElementById('ui-layer');
 const pctx = pdfC.getContext('2d');
 const uctx = uiC.getContext('2d');
-const editor = document.getElementById('editor');
+const editor = document.getElementById('inline-editor');
 
 // Controls
 const fontSel = document.getElementById('font-family');
@@ -221,7 +242,8 @@ const sizeInp = document.getElementById('font-size');
 const colorInp= document.getElementById('font-color');
 const boldBtn = document.getElementById('btn-bold');
 
-function init(){
+// Init
+window.onload = () => {
   document.getElementById('file-in').onchange = e=>{ if(e.target.files[0]) openPDF(e.target.files[0]); };
   document.getElementById('btn-open').onclick = ()=>document.getElementById('file-in').click();
   document.getElementById('btn-save').onclick = savePDF;
@@ -237,6 +259,7 @@ function init(){
 
   [fontSel,sizeInp,colorInp].forEach(el=>el.oninput=applyProps);
   boldBtn.onclick = ()=>{boldBtn.classList.toggle('active'); applyProps();};
+
   ['left','center','right'].forEach(a=>{
     document.getElementById('align-'+a).onclick=()=>{
       if(S.sel){ const o=getSel(); if(o&&o.type==='text'){ o.align=a; renderUI(); saveState(); }}
@@ -247,31 +270,35 @@ function init(){
   uiC.onmousemove = onMove;
   window.onmouseup = onUp;
   uiC.ondblclick = onDbl;
+
   editor.onblur = commitEdit;
   editor.onkeydown = e=>{
     if(e.key==='Enter'&& !e.shiftKey){ e.preventDefault(); commitEdit(); }
     if(e.key==='Escape'){ cancelEdit(); }
   };
 
-  // Drag-drop
-  ['dragenter','dragover'].forEach(ev=>document.addEventListener(ev,e=>{e.preventDefault(); document.getElementById('drop-zone').classList.remove('hidden');}));
-  ['dragleave','drop'].forEach(ev=>document.addEventListener(ev,e=>{e.preventDefault(); if(ev==='drop'){if(e.dataTransfer.files[0]) openPDF(e.dataTransfer.files[0]);} document.getElementById('drop-zone').classList.add('hidden');}));
-}
+  // Drag-drop overlay
+  ['dragenter','dragover'].forEach(ev=>document.addEventListener(ev,e=>{e.preventDefault(); document.getElementById('upload-overlay').classList.remove('hidden');}));
+  ['dragleave','drop'].forEach(ev=>document.addEventListener(ev,e=>{e.preventDefault(); if(ev==='drop'){if(e.dataTransfer.files[0]) openPDF(e.dataTransfer.files[0]);} document.getElementById('upload-overlay').classList.add('hidden');}));
+};
+
 function setTool(t){
   S.tool=t;
-  document.querySelectorAll('.btn-tool').forEach(b=>b.classList.toggle('active',b.dataset.tool===t));
-  uiC.style.cursor = t==='select'?'default':'crosshair';
+  document.querySelectorAll('.btn-large').forEach(b=>b.classList.toggle('active', b.dataset.tool===t));
+  uiC.style.cursor = t==='select' ? 'default' : 'crosshair';
   if(t!=='select'){ S.sel=null; renderUI(); }
 }
+
 async function openPDF(file){
   S.bytes = await file.arrayBuffer();
   S.pdf   = await pdfjsLib.getDocument({data:S.bytes}).promise;
   S.doc   = await PDFLib.PDFDocument.load(S.bytes);
   S.page  = 1; S.objs=[]; S.sel=null;
   document.getElementById('btn-save').disabled=false;
-  document.getElementById('drop-zone').classList.add('hidden');
+  document.getElementById('upload-overlay').classList.add('hidden');
   render(); saveState();
 }
+
 async function render(){
   if(!S.pdf) return;
   const page = await S.pdf.getPage(S.page);
@@ -282,6 +309,7 @@ async function render(){
   document.getElementById('zoom-val').innerText = Math.round(S.scale*100)+'%';
   renderUI();
 }
+
 function renderUI(){
   uctx.clearRect(0,0,uiC.width,uiC.height);
   for(const o of S.objs){
@@ -289,18 +317,18 @@ function renderUI(){
     const x=o.x*S.scale, y=o.y*S.scale, w=o.w*S.scale, h=o.h*S.scale;
     if(o.type==='whiteout'){
       uctx.fillStyle='#fff'; uctx.fillRect(x,y,w,h);
-    }else if(o.type==='image' && o.img){
+    } else if(o.type==='image' && o.img){
       uctx.drawImage(o.img,x,y,w,h);
-    }else if(o.type==='text'){
+    } else if(o.type==='text'){
       uctx.save();
       const fam = o.font==='BankCourier' ? '"Courier Prime", Courier, monospace' : (o.font==='Times'?'Times New Roman, serif':'Helvetica, Arial, sans-serif');
       const weight = o.bold ? '700' : '400';
       uctx.font = `${weight} ${o.size*S.scale}px ${fam}`;
       uctx.fillStyle = o.color;
       uctx.textBaseline='top';
-      let tx=x;
+      let tx = x;
       const tw = uctx.measureText(o.text).width;
-      if(o.align==='center') tx = x + (w-tw)/2;
+      if(o.align==='center') tx = x + (w - tw)/2;
       if(o.align==='right')  tx = x + w - tw;
       uctx.fillText(o.text, tx, y);
       uctx.restore();
@@ -319,9 +347,10 @@ function renderUI(){
     uctx.restore();
   }
 }
+
 function getPos(e){
   const r=uiC.getBoundingClientRect();
-  return {x:(e.clientX-r.left)/S.scale, y:(e.clientY-r.top)/S.scale, rawX:e.clientX-r.left, rawY:e.clientY-r.top};
+  return {x:(e.clientX-r.left)/S.scale, y:(e.clientY-r.top)/S.scale};
 }
 function hitObj(x,y){
   for(let i=S.objs.length-1;i>=0;i--){
@@ -357,6 +386,8 @@ function onDown(e){
     createTextAt(x,y);
   } else if(S.tool==='whiteout'){
     S.drag={start:{x,y}, white:true};
+  } else if(S.tool==='image'){
+    document.getElementById('img-in').click();
   }
 }
 function onMove(e){
@@ -396,10 +427,11 @@ function onDbl(e){
   const {x,y}=getPos(e);
   const o = S.objs.find(o=>o.type==='text' && x>=o.x && x<=o.x+o.w && y>=o.y && y<=o.y+o.h);
   if(o){ S.sel=o.id; startEdit(o); }
-  else if(S.tool==='select'){ // dblclick empty creates text
+  else if(S.tool==='select'){ // dblclick empty to add text + mask
     createTextAt(x,y);
   }
 }
+
 function resizeObj(o,h,x,y){
   const min=8;
   if(h==='nw'){ const nx=Math.min(o.x+o.w-min,x); const ny=Math.min(o.y+o.h-min,y); o.w=o.x+o.w-nx; o.h=o.y+o.h-ny; o.x=nx; o.y=ny; }
@@ -409,12 +441,12 @@ function resizeObj(o,h,x,y){
 }
 
 function createTextAt(x,y){
-  // auto-mask behind text
+  // Auto-mask behind text
   const maskId = genId();
   const txtId  = genId();
   const size   = parseInt(sizeInp.value)||12;
   const h      = size*1.2;
-  const w      = 140;
+  const w      = 160;
   S.objs.push({id:maskId,type:'whiteout',x,y,w,h});
   S.objs.push({
     id:txtId,type:'text',text:'',
@@ -427,6 +459,7 @@ function createTextAt(x,y){
   });
   S.sel=txtId; setTool('select'); saveState(); startEdit(getSel());
 }
+
 function startEdit(o){
   S.isEdit=true;
   editor.style.display='block';
@@ -443,6 +476,7 @@ function startEdit(o){
   editor.focus();
   renderUI();
 }
+
 function commitEdit(){
   if(!S.isEdit) return;
   const o=getSel(); if(!o) return;
@@ -466,7 +500,7 @@ function applyProps(){
 }
 
 function getSel(){ return S.objs.find(o=>o.id===S.sel); }
-function genId(){ return crypto.randomUUID(); }
+function genId(){ return crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2); }
 
 function undo(){
   if(S.hi>0){ S.hi--; S.objs=JSON.parse(S.history[S.hi]); renderUI(); }
@@ -487,6 +521,7 @@ function delSel(){
   S.objs = S.objs.filter(x=>x.id!==S.sel);
   S.sel=null; saveState(); renderUI();
 }
+
 function loadImg(file){
   if(!file) return;
   const img=new Image();
@@ -499,7 +534,7 @@ function loadImg(file){
   img.src=URL.createObjectURL(file);
 }
 
-// Save with pdf-lib: whiteout, text (bold), images
+// Save with pdf-lib
 async function savePDF(){
   if(!S.doc) return;
   const doc = await PDFLib.PDFDocument.load(S.bytes);
@@ -522,40 +557,39 @@ async function savePDF(){
     } else if(o.type==='text'){
       const font = await getFont(o.font, o.bold);
       const rgb = hexToRgb(o.color||'#000000');
-      const y = height - o.y - o.size*0.8;
-      // alignment: use bounding width
-      const w = font.widthOfTextAtSize(o.text, o.size);
+      const size = o.size;
+      const y = height - o.y - size*0.8;
+      const tw = font.widthOfTextAtSize(o.text, size);
       let tx = o.x;
-      if(o.align==='center') tx = o.x + (o.w - w)/2;
-      if(o.align==='right')  tx = o.x + (o.w - w);
+      if(o.align==='center') tx = o.x + (o.w - tw)/2;
+      if(o.align==='right')  tx = o.x + o.w - tw;
       page.drawText(o.text,{
         x:tx, y,
-        size:o.size,
+        size,
         font,
         color: PDFLib.rgb(rgb.r/255,rgb.g/255,rgb.b/255)
       });
     } else if(o.type==='image' && o.img){
-      // re-embed via canvas for simplicity
-      const temp = document.createElement('canvas');
-      temp.width=o.img.naturalWidth; temp.height=o.img.naturalHeight;
-      temp.getContext('2d').drawImage(o.img,0,0);
-      const dataUrl = temp.toDataURL('image/png');
+      // embed via canvas to png
+      const c=document.createElement('canvas');
+      c.width=o.img.naturalWidth; c.height=o.img.naturalHeight;
+      c.getContext('2d').drawImage(o.img,0,0);
+      const dataUrl = c.toDataURL('image/png');
       const embed = await doc.embedPng(dataUrl);
       page.drawImage(embed,{x:o.x, y:height - (o.y+o.h), width:o.w, height:o.h});
     }
   }
   const bytes = await doc.save();
   const blob = new Blob([bytes], {type:'application/pdf'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='edited.pdf'; a.click();
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download='edited.pdf'; a.click();
+  URL.revokeObjectURL(a.href);
 }
 
 function hexToRgb(hex){
   const v=parseInt(hex.slice(1),16);
   return {r:(v>>16)&255,g:(v>>8)&255,b:v&255};
 }
-
-// Start
-init();
 </script>
 </body>
 </html>
