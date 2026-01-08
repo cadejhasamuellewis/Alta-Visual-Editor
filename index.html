@@ -3,86 +3,405 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Alta Pro - Diagnostic Mode</title>
+  <title>Alta Pro - Bank Grade Editor</title>
 
+  <!-- Fonts & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet" />
 
+  <!-- PDF.js / PDF-Lib -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 
   <style>
-    /* SIMPLE STYLES TO PREVENT LAYOUT ISSUES */
-    :root { --bg:#f1f5f9; --panel:#fff; --accent:#cceeff; --primary:#0066cc; }
-    body { margin:0; font-family:'Inter',sans-serif; background:var(--bg); height:100vh; display:flex; flex-direction:column; overflow:hidden; }
-    
-    .ribbon { background:var(--panel); height:90px; border-bottom:1px solid #cbd5e1; display:flex; align-items:center; padding:0 20px; gap:15px; }
-    .btn { height:60px; min-width:60px; background:transparent; border:none; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; font-size:11px; color:#64748b; border-radius:6px; }
-    .btn:hover { background:#f1f5f9; color:var(--primary); }
-    .btn.active { background:var(--accent); color:var(--primary); }
-    .btn i { font-size:20px; margin-bottom:5px; }
+    :root {
+      --bg-app: #f1f5f9; --bg-panel: #ffffff;
+      --accent: #cceeff; --accent-dark: #99d1f2; --accent-active: #0066cc;
+      --text: #334155; --border: #cbd5e1;
+    }
+    * { box-sizing: border-box; user-select: none; }
+    body { margin:0; font-family:'Inter',sans-serif; background:var(--bg-app); height:100vh; display:flex; flex-direction:column; overflow:hidden; }
 
-    #workspace { flex:1; background:#475569; overflow:auto; display:flex; justify-content:center; padding:40px; }
-    #canvas-wrap { position:relative; background:white; box-shadow:0 10px 30px rgba(0,0,0,0.3); }
+    .ribbon { background:var(--bg-panel); border-bottom:1px solid var(--border); height:90px; display:flex; align-items:center; padding:0 12px; gap:8px; box-shadow:0 4px 6px -1px rgba(0,0,0,0.05); z-index:50; }
+    .brand { font-weight:800; font-size:18px; color:#0f172a; margin-right:12px; border-right:1px solid #ddd; padding-right:12px; height:48px; display:flex; align-items:center; }
+    .group { display:flex; align-items:center; gap:6px; padding-right:10px; border-right:1px solid #eee; height:60px; }
+    .group:last-child { border:none; }
+    .btn { display:flex; flex-direction:column; align-items:center; justify-content:center; width:60px; height:100%; border:1px solid transparent; background:transparent; border-radius:6px; color:#64748b; font-size:11px; font-weight:600; cursor:pointer; gap:4px; transition:all .1s; }
+    .btn i { font-size:18px; }
+    .btn:hover { background:#f8fafc; color:var(--accent-active); }
+    .btn.active { background:var(--accent); color:var(--accent-active); border-color:var(--accent-dark); }
+    .btn:disabled { opacity:0.5; cursor:not-allowed; }
+    .btn-icon { width:32px; height:32px; border:1px solid transparent; background:transparent; border-radius:4px; cursor:pointer; color:#475569; display:flex; align-items:center; justify-content:center; }
+    .btn-icon:hover { background:#f1f5f9; color:var(--accent-active); }
+    select, input { height:30px; border:1px solid #cbd5e1; border-radius:4px; padding:0 6px; color:#334155; font-size:12px; }
+    select { width:120px; }
+    input[type=number] { width:50px; }
+
+    #workspace { flex:1; background:#475569; overflow:auto; display:flex; justify-content:center; padding:32px; position:relative; }
+    #canvas-container { position:relative; background:white; box-shadow:0 20px 25px -5px rgba(0,0,0,0.5); }
     canvas { position:absolute; top:0; left:0; }
     #pdf-layer { z-index:1; }
     #ui-layer { z-index:10; cursor:crosshair; }
-    
-    #editor { position:absolute; z-index:100; background:transparent; border:2px dashed var(--primary); outline:none; display:none; resize:none; overflow:hidden; white-space:pre; transform-origin:top left; }
 
-    /* UPLOAD OVERLAY */
-    #loader { position:fixed; inset:0; background:rgba(255,255,255,0.98); z-index:1000; display:flex; flex-direction:column; align-items:center; justify-content:center; }
-    #loader.hidden { display:none; }
-    .big-btn { padding:15px 40px; background:var(--primary); color:white; font-size:18px; border:none; border-radius:8px; cursor:pointer; }
+    #inline-editor {
+      position:absolute; z-index:100; background:transparent; border:1px dashed #0066cc;
+      outline:none; padding:0; margin:0; resize:none; overflow:hidden; white-space:pre;
+      line-height:1; display:none; transform-origin:top left;
+    }
+
+    #upload-overlay { position:fixed; inset:0; z-index:999; background:rgba(255,255,255,0.96); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; }
+    #upload-overlay.hidden { display:none; }
+    .upload-btn { padding:15px 40px; font-size:16px; font-weight:bold; background:var(--accent-active); color:#fff; border:none; border-radius:8px; cursor:pointer; box-shadow:0 4px 6px rgba(0,102,204,0.3); }
+    .upload-btn:hover { transform:translateY(-1px); box-shadow:0 6px 8px rgba(0,102,204,0.4); }
+    #status { position:fixed; bottom:10px; left:10px; background:rgba(0,0,0,0.7); color:#fff; padding:8px 12px; border-radius:6px; font-size:12px; display:none; z-index:1200; }
   </style>
 </head>
 <body>
 
-<div class="ribbon">
-  <h2 style="color:#0f172a; margin-right:20px;">ALTA</h2>
-  <button class="btn" onclick="document.getElementById('file-in').click()"><i class="fa-regular fa-folder-open"></i>Open</button>
-  <button class="btn" id="btn-save" disabled onclick="savePDF()"><i class="fa-regular fa-floppy-disk"></i>Save</button>
-  <div style="width:1px; height:50px; background:#ddd;"></div>
-  <button class="btn active" id="tool-select" onclick="setTool('select')"><i class="fa-solid fa-arrow-pointer"></i>Select</button>
-  <button class="btn" id="tool-text" onclick="setTool('text')"><i class="fa-solid fa-font"></i>Text</button>
-  <button class="btn" id="tool-mask" onclick="setTool('mask')"><i class="fa-solid fa-eraser"></i>Erase</button>
-  
-  <div style="margin-left:auto; display:flex; gap:10px;">
-    <select id="font-fam" style="height:30px;"><option value="BankCourier">Bank Courier</option><option value="Helvetica">Helvetica</option></select>
-    <input type="number" id="font-sz" value="12" style="width:50px; height:30px;">
-    <button class="btn" style="height:30px; width:30px; min-width:30px;" id="btn-bold" onclick="toggleBold()">B</button>
-    <button class="btn" style="height:30px; width:30px; min-width:30px; color:red;" onclick="deleteItem()"><i class="fa-solid fa-trash"></i></button>
+  <div class="ribbon">
+    <div class="brand">ALTA</div>
+    <div class="group">
+      <button class="btn" id="btn-open"><i class="fa-regular fa-folder-open"></i>Open</button>
+      <button class="btn" id="btn-save" disabled><i class="fa-regular fa-floppy-disk"></i>Save</button>
+      <button class="btn" id="btn-print"><i class="fa-solid fa-print"></i>Print</button>
+    </div>
+    <div class="group">
+      <button class="btn active" data-tool="select"><i class="fa-solid fa-arrow-pointer"></i>Select</button>
+      <button class="btn" data-tool="text"><i class="fa-solid fa-font"></i>Text</button>
+      <button class="btn" data-tool="whiteout"><i class="fa-solid fa-eraser"></i>Mask</button>
+      <button class="btn" data-tool="image"><i class="fa-regular fa-image"></i>Image</button>
+    </div>
+    <div class="group">
+      <select id="font-family">
+        <option value="BankCourier">Bank Courier</option>
+        <option value="Helvetica">Helvetica</option>
+        <option value="Times">Times Roman</option>
+      </select>
+      <input type="number" id="font-size" value="12">
+      <button class="btn-icon" id="btn-bold" title="Bold"><i class="fa-solid fa-bold"></i></button>
+      <button class="btn-icon" id="btn-delete" title="Delete" style="color:#ef4444;"><i class="fa-solid fa-trash"></i></button>
+    </div>
+    <div class="group" style="margin-left:auto; border:none; padding-right:0;">
+      <button class="btn-icon" id="btn-undo" title="Undo"><i class="fa-solid fa-rotate-left"></i></button>
+      <button class="btn-icon" id="btn-redo" title="Redo"><i class="fa-solid fa-rotate-right"></i></button>
+    </div>
   </div>
-</div>
 
-<div id="workspace">
-  <div id="canvas-wrap">
-    <canvas id="pdf-layer"></canvas>
-    <canvas id="ui-layer"></canvas>
-    <textarea id="editor"></textarea>
+  <div id="workspace">
+    <div id="canvas-container">
+      <canvas id="pdf-layer"></canvas>
+      <canvas id="ui-layer"></canvas>
+      <textarea id="inline-editor"></textarea>
+    </div>
   </div>
-</div>
 
-<div id="loader">
-  <h1>Bank Grade Editor</h1>
-  <button class="big-btn" onclick="document.getElementById('file-in').click()">Select PDF</button>
-  <p style="margin-top:20px; color:#666;">v5.0 Diagnostic</p>
-</div>
+  <div id="upload-overlay">
+    <i class="fa-solid fa-cloud-arrow-up fa-3x" style="color:#cbd5e1;"></i>
+    <h2 style="margin:6px 0 0 0;">Load PDF Document</h2>
+    <button class="upload-btn" onclick="document.getElementById('file-in').click()">Choose PDF</button>
+  </div>
 
-<input type="file" id="file-in" accept="application/pdf" style="display:none" onchange="handleFile(this.files[0])">
+  <input type="file" id="file-in" accept="application/pdf" style="display:none">
+  <input type="file" id="img-in" accept="image/*" style="display:none">
+  <div id="status"></div>
 
 <script>
-// --- CONFIG ---
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-const App = { 
-  pdfData: null, pdfDoc: null, pdfLib: null, 
-  scale: 1.5, page: 1, tool: 'select', 
-  items: [], sel: null, edit: false 
+const S = {
+  pdf: null, pdfLib: null, bytes: null,
+  scale: 1.3, page: 1,
+  tool: 'select',
+  objs: [], sel: null,
+  isEditing: false,
+  drag: null
 };
 
+const wrap = document.getElementById('canvas-container');
 const pdfC = document.getElementById('pdf-layer');
-const uiC = document
+const uiC  = document.getElementById('ui-layer');
+const pctx = pdfC.getContext('2d');
+const uctx = uiC.getContext('2d');
+const editor = document.getElementById('inline-editor');
+const statusEl = document.getElementById('status');
+
+// UI helpers
+function status(msg, ms=2000){ statusEl.textContent=msg; statusEl.style.display='block'; clearTimeout(status._t); status._t=setTimeout(()=>statusEl.style.display='none', ms); }
+function genId(){ return crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2); }
+
+function setTool(t){
+  if(S.isEditing) commitEdit();
+  S.tool=t;
+  document.querySelectorAll('[data-tool]').forEach(b=>b.classList.toggle('active', b.dataset.tool===t));
+  uiC.style.cursor = t==='select' ? 'default' : 'crosshair';
+  if(t!=='select'){ S.sel=null; renderUI(); }
+}
+
+// Load PDF (with buffer clone to avoid cross-lib contention)
+async function openPDF(file){
+  if(!file) return;
+  try{
+    const buf = await file.arrayBuffer();
+    // clone for pdf-lib to avoid mutation by pdf.js
+    const bufForPdfLib = buf.slice(0);
+
+    S.pdf   = await pdfjsLib.getDocument({data: buf}).promise;
+    S.pdfLib= await PDFLib.PDFDocument.load(bufForPdfLib);
+    S.bytes = bufForPdfLib;
+
+    document.getElementById('upload-overlay').classList.add('hidden');
+    document.getElementById('btn-save').disabled=false;
+    await renderPage();
+    status('PDF loaded');
+  }catch(err){
+    console.error(err);
+    alert('Failed to load PDF: '+err.message);
+  }
+}
+
+async function renderPage(){
+  if(!S.pdf) return;
+  const page = await S.pdf.getPage(S.page);
+  const vp = page.getViewport({scale:S.scale});
+  pdfC.width=vp.width; pdfC.height=vp.height;
+  uiC.width=vp.width; uiC.height=vp.height;
+  wrap.style.width = vp.width+'px';
+  wrap.style.height= vp.height+'px';
+
+  await page.render({canvasContext:pctx, viewport:vp}).promise;
+  renderUI();
+}
+
+// Draw overlay
+function renderUI(){
+  uctx.clearRect(0,0,uiC.width,uiC.height);
+  for(const o of S.objs){
+    if(S.isEditing && S.sel===o.id) continue;
+    const x=o.x*S.scale, y=o.y*S.scale, w=o.w*S.scale, h=o.h*S.scale;
+    if(o.type==='whiteout'){
+      uctx.fillStyle='#fff'; uctx.fillRect(x,y,w,h);
+    } else if(o.type==='image' && o.img){
+      uctx.drawImage(o.img,x,y,w,h);
+    } else if(o.type==='text'){
+      uctx.save();
+      const fam = o.font==='BankCourier' ? '"Courier Prime", Courier, monospace' : (o.font==='Times'?'Times New Roman, serif':'Helvetica, Arial, sans-serif');
+      const weight = o.bold ? '700' : '400';
+      uctx.font = `${weight} ${o.size*S.scale}px ${fam}`;
+      uctx.fillStyle = '#000';
+      uctx.textBaseline='top';
+      uctx.fillText(o.text, x, y);
+      uctx.restore();
+    }
+  }
+  if(S.sel && !S.isEditing){
+    const o = S.objs.find(i=>i.id===S.sel);
+    if(o){
+      const x=o.x*S.scale,y=o.y*S.scale,w=o.w*S.scale,h=o.h*S.scale;
+      uctx.strokeStyle='#0066cc'; uctx.lineWidth=1.5; uctx.setLineDash([4,2]);
+      uctx.strokeRect(x,y,w,h); uctx.setLineDash([]);
+      uctx.fillStyle='#cceeff';
+      [[x,y],[x+w,y],[x,y+h],[x+w,y+h]].forEach(([hx,hy])=>{
+        uctx.fillRect(hx-3,hy-3,6,6); uctx.strokeRect(hx-3,hy-3,6,6);
+      });
+    }
+  }
+}
+
+// Events
+function getPos(e){ const r=uiC.getBoundingClientRect(); return {x:(e.clientX-r.left)/S.scale, y:(e.clientY-r.top)/S.scale}; }
+uiC.onmousedown = e=>{
+  const {x,y}=getPos(e);
+  if(S.tool==='select'){
+    const hit = S.objs.slice().reverse().find(o=>x>=o.x && x<=o.x+o.w && y>=o.y && y<=o.y+o.h);
+    S.sel = hit ? hit.id : null;
+    if(hit){ S.drag={dx:x-hit.x, dy:y-hit.y}; syncToolbar(hit); }
+    renderUI();
+  } else if(S.tool==='text'){
+    createTextAt(x,y);
+  } else if(S.tool==='whiteout'){
+    S.drag={start:{x,y}, white:true};
+  } else if(S.tool==='image'){
+    document.getElementById('img-in').click();
+  }
+};
+uiC.onmousemove = e=>{
+  if(!S.drag) return;
+  const {x,y}=getPos(e);
+  if(S.drag.white){
+    renderUI();
+    const sx=S.drag.start.x*S.scale, sy=S.drag.start.y*S.scale;
+    const w=x*S.scale - sx, h=y*S.scale - sy;
+    uctx.fillStyle='rgba(204,238,255,0.35)';
+    uctx.strokeStyle='#0066cc';
+    uctx.fillRect(sx,sy,w,h); uctx.strokeRect(sx,sy,w,h);
+  } else if(S.sel){
+    const o=S.objs.find(i=>i.id===S.sel); if(!o) return;
+    o.x = x - S.drag.dx; o.y = y - S.drag.dy;
+    if(o.maskId){ const m=S.objs.find(i=>i.id===o.maskId); if(m){ m.x=o.x; m.y=o.y; } }
+    renderUI();
+  }
+};
+uiC.onmouseup = e=>{
+  if(S.drag && S.drag.white){
+    const {x,y}=getPos(e);
+    const sx=S.drag.start.x, sy=S.drag.start.y;
+    if(Math.abs(x-sx)>4 && Math.abs(y-sy)>4){
+      S.objs.push({id:genId(), type:'whiteout', x:Math.min(x,sx), y:Math.min(y,sy), w:Math.abs(x-sx), h:Math.abs(y-sy)});
+    }
+  }
+  S.drag=null;
+  renderUI();
+};
+uiC.ondblclick = e=>{
+  const {x,y}=getPos(e);
+  const hit = S.objs.find(o=>o.type==='text' && x>=o.x && x<=o.x+o.w && y>=o.y && y<=o.y+o.h);
+  if(hit){ S.sel=hit.id; startEdit(hit); }
+  else if(S.tool==='select'){ createTextAt(x,y); }
+};
+
+// Text logic
+function createTextAt(x,y){
+  const maskId=genId(), id=genId();
+  const size=parseInt(document.getElementById('font-size').value)||12;
+  const h=size*1.2, w=160;
+  S.objs.push({id:maskId,type:'whiteout',x,y,w,h});
+  S.objs.push({
+    id, type:'text', text:'Type Here', x,y,w,h,
+    font:document.getElementById('font-family').value,
+    size, bold:document.getElementById('btn-bold').classList.contains('active'),
+    maskId
+  });
+  S.sel=id; setTool('select'); startEdit(S.objs.find(o=>o.id===id));
+}
+
+function startEdit(o){
+  S.isEditing=true;
+  editor.style.display='block';
+  editor.style.left=(o.x*S.scale)+'px';
+  editor.style.top =(o.y*S.scale)+'px';
+  editor.style.width =(Math.max(o.w,40)*S.scale)+'px';
+  editor.style.height=(o.h*S.scale)+'px';
+
+  const fam = o.font==='BankCourier' ? '"Courier Prime", Courier, monospace' : (o.font==='Times'?'Times New Roman, serif':'Helvetica, Arial, sans-serif');
+  editor.style.fontFamily=fam;
+  editor.style.fontSize=(o.size*S.scale)+'px';
+  editor.style.fontWeight=o.bold?'700':'400';
+  editor.value=o.text;
+  editor.focus(); editor.select();
+  renderUI();
+}
+function commitEdit(){
+  if(!S.isEditing) return;
+  const o=S.objs.find(i=>i.id===S.sel); if(o){
+    o.text = editor.value;
+    const ctx=document.createElement('canvas').getContext('2d');
+    ctx.font=`${o.bold?'bold ':''}${o.size}px ${o.font==='BankCourier'?'Courier Prime':'Helvetica'}`;
+    o.w = Math.max(ctx.measureText(o.text).width + 10, 20);
+    o.h = o.size*1.2;
+    if(o.maskId){ const m=S.objs.find(i=>i.id===o.maskId); if(m){ m.w=o.w; m.h=o.h; } }
+  }
+  S.isEditing=false; editor.style.display='none';
+  renderUI();
+}
+function deleteSelected(){
+  if(!S.sel) return;
+  const o=S.objs.find(i=>i.id===S.sel);
+  if(o && o.maskId) S.objs = S.objs.filter(i=>i.id!==o.maskId);
+  S.objs = S.objs.filter(i=>i.id!==S.sel);
+  S.sel=null; renderUI();
+}
+function applyProps(){
+  const o=S.objs.find(i=>i.id===S.sel);
+  if(o && o.type==='text'){
+    o.font=document.getElementById('font-family').value;
+    o.size=parseInt(document.getElementById('font-size').value)||o.size;
+    o.bold=document.getElementById('btn-bold').classList.contains('active');
+    if(o.maskId){ const m=S.objs.find(i=>i.id===o.maskId); if(m){ m.h=o.size*1.2; } }
+    renderUI();
+  }
+}
+function syncToolbar(o){
+  if(o.type!=='text') return;
+  document.getElementById('font-family').value=o.font;
+  document.getElementById('font-size').value=o.size;
+  document.getElementById('btn-bold').classList.toggle('active', !!o.bold);
+}
+
+// Image
+document.getElementById('img-in').onchange=e=>loadImg(e.target.files[0]);
+function loadImg(file){
+  if(!file) return;
+  const img=new Image();
+  img.onload=()=>{
+    const ratio=img.height/img.width;
+    const w=200,h=200*ratio;
+    S.objs.push({id:genId(), type:'image', img, x:40, y:40, w, h});
+    renderUI();
+  };
+  img.src=URL.createObjectURL(file);
+}
+
+// Save
+async function savePDF(){
+  if(!S.pdfLib) { alert('No PDF loaded'); return; }
+  try{
+    const doc = await PDFLib.PDFDocument.load(S.bytes);
+    const page = doc.getPages()[S.page-1];
+    const {height} = page.getSize();
+
+    const fontCache={};
+    async function getFont(f,b){
+      const key=f+(b?'b':'n'); if(fontCache[key]) return fontCache[key];
+      let name;
+      if(f==='BankCourier') name = b?PDFLib.StandardFonts.CourierBold:PDFLib.StandardFonts.Courier;
+      else if(f==='Times')   name = b?PDFLib.StandardFonts.TimesRomanBold:PDFLib.StandardFonts.TimesRoman;
+      else                   name = b?PDFLib.StandardFonts.HelveticaBold:PDFLib.StandardFonts.Helvetica;
+      const ft = await doc.embedFont(name); fontCache[key]=ft; return ft;
+    }
+
+    for(const o of S.objs){
+      if(o.type==='whiteout'){
+        page.drawRectangle({x:o.x, y:height - (o.y+o.h), width:o.w, height:o.h, color: PDFLib.rgb(1,1,1)});
+      } else if(o.type==='text'){
+        const font = await getFont(o.font, o.bold);
+        const rgb = {r:0,g:0,b:0};
+        const size = o.size;
+        const y = height - o.y - size*0.85;
+        page.drawText(o.text,{
+          x:o.x,
+          y,
+          size,
+          font,
+          color: PDFLib.rgb(rgb.r/255,rgb.g/255,rgb.b/255)
+        });
+      } else if(o.type==='image' && o.img){
+        const c=document.createElement('canvas');
+        c.width=o.img.naturalWidth; c.height=o.img.naturalHeight;
+        c.getContext('2d').drawImage(o.img,0,0);
+        const dataUrl=c.toDataURL('image/png');
+        const embed=await doc.embedPng(dataUrl);
+        page.drawImage(embed,{x:o.x,y:height - (o.y+o.h),width:o.w,height:o.h});
+      }
+    }
+    const bytes=await doc.save();
+    const blob=new Blob([bytes],{type:'application/pdf'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob); a.download='edited.pdf'; a.click();
+    URL.revokeObjectURL(a.href);
+    status('PDF saved');
+  }catch(err){ console.error(err); alert('Save failed: '+err.message); }
+}
+
+// File input
+document.getElementById('file-in').onchange = e => { if(e.target.files[0]) openPDF(e.target.files[0]); };
+// Buttons
+document.getElementById('btn-open').onclick = ()=>document.getElementById('file-in').click();
+document.getElementById('btn-save').onclick = savePDF;
+document.getElementById('btn-print').onclick = ()=>window.print();
+
+</script>
+</body>
+</html>
