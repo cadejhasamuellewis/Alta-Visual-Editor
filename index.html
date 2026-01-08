@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Alta Pro - Bank Grade Editor</title>
+  <title>Alta Pro - Diagnostic Mode</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet" />
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -15,88 +15,74 @@
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 
   <style>
+    /* SIMPLE STYLES TO PREVENT LAYOUT ISSUES */
     :root { --bg:#f1f5f9; --panel:#fff; --accent:#cceeff; --primary:#0066cc; }
-    * { box-sizing: border-box; user-select: none; }
     body { margin:0; font-family:'Inter',sans-serif; background:var(--bg); height:100vh; display:flex; flex-direction:column; overflow:hidden; }
-
-    /* RIBBON TOOLBAR */
-    .ribbon { background:var(--panel); border-bottom:1px solid #cbd5e1; height:90px; display:flex; align-items:center; padding:0 15px; gap:8px; box-shadow:0 4px 6px -1px rgba(0,0,0,0.05); z-index:50; }
-    .brand { font-weight:800; font-size:20px; color:#0f172a; margin-right:15px; border-right:1px solid #ddd; padding-right:15px; height:50px; display:flex; align-items:center; }
     
-    .tool-group { display:flex; gap:5px; padding-right:10px; border-right:1px solid #eee; height:60px; align-items:center; }
-    .tool-group:last-child { border:none; }
+    .ribbon { background:var(--panel); height:90px; border-bottom:1px solid #cbd5e1; display:flex; align-items:center; padding:0 20px; gap:15px; }
+    .btn { height:60px; min-width:60px; background:transparent; border:none; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; font-size:11px; color:#64748b; border-radius:6px; }
+    .btn:hover { background:#f1f5f9; color:var(--primary); }
+    .btn.active { background:var(--accent); color:var(--primary); }
+    .btn i { font-size:20px; margin-bottom:5px; }
 
-    .btn { display:flex; flex-direction:column; align-items:center; justify-content:center; width:60px; height:100%; border:1px solid transparent; background:transparent; border-radius:6px; color:#64748b; font-size:11px; font-weight:600; cursor:pointer; gap:4px; transition:all 0.1s; }
-    .btn i { font-size:18px; }
-    .btn:hover { background:#f8fafc; color:var(--primary); }
-    .btn.active { background:var(--accent); color:var(--primary); border-color:#99d1f2; }
-    .btn:disabled { opacity:0.5; cursor:not-allowed; }
-
-    .btn-icon { width:32px; height:32px; border:1px solid transparent; background:transparent; border-radius:4px; cursor:pointer; color:#475569; display:flex; align-items:center; justify-content:center; }
-    .btn-icon:hover { background:#f1f5f9; color:var(--primary); }
-    
-    /* INPUTS */
-    select, input { height:30px; border:1px solid #cbd5e1; border-radius:4px; padding:0 6px; color:#334155; font-size:12px; }
-
-    /* WORKSPACE */
     #workspace { flex:1; background:#475569; overflow:auto; display:flex; justify-content:center; padding:40px; }
-    #canvas-container { position:relative; background:white; box-shadow:0 20px 25px -5px rgba(0,0,0,0.5); }
+    #canvas-wrap { position:relative; background:white; box-shadow:0 10px 30px rgba(0,0,0,0.3); }
     canvas { position:absolute; top:0; left:0; }
-    #pdf-layer { z-index: 1; } /* The "Background Image" */
-    #ui-layer { z-index: 10; cursor:crosshair; } /* The Editing Layer */
-
-    /* EDITOR BOX */
-    #inline-editor { position:absolute; z-index:100; background:transparent; border:2px dashed var(--primary); outline:none; padding:0; margin:0; resize:none; overflow:hidden; white-space:pre; line-height:1; display:none; transform-origin:top left; }
+    #pdf-layer { z-index:1; }
+    #ui-layer { z-index:10; cursor:crosshair; }
+    
+    #editor { position:absolute; z-index:100; background:transparent; border:2px dashed var(--primary); outline:none; display:none; resize:none; overflow:hidden; white-space:pre; transform-origin:top left; }
 
     /* UPLOAD OVERLAY */
-    #upload-overlay { position:fixed; inset:0; z-index:999; background:rgba(255,255,255,0.98); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; }
-    #upload-overlay.hidden { display:none; }
-    .upload-btn { padding:15px 40px; font-size:16px; font-weight:bold; background:var(--primary); color:white; border:none; border-radius:8px; cursor:pointer; box-shadow:0 4px 6px rgba(0,102,204,0.3); }
-    .upload-btn:hover { transform:translateY(-1px); box-shadow:0 6px 8px rgba(0,102,204,0.4); }
+    #loader { position:fixed; inset:0; background:rgba(255,255,255,0.98); z-index:1000; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+    #loader.hidden { display:none; }
+    .big-btn { padding:15px 40px; background:var(--primary); color:white; font-size:18px; border:none; border-radius:8px; cursor:pointer; }
   </style>
 </head>
 <body>
 
-  <div class="ribbon">
-    <div class="brand">ALTA</div>
-    
-    <div class="tool-group">
-      <button class="btn" id="btn-open"><i class="fa-regular fa-folder-open"></i>Open</button>
-      <button class="btn" id="btn-save" disabled><i class="fa-regular fa-floppy-disk"></i>Save</button>
-    </div>
-
-    <div class="tool-group">
-      <button class="btn active" data-tool="select"><i class="fa-solid fa-arrow-pointer"></i>Select</button>
-      <button class="btn" data-tool="text"><i class="fa-solid fa-font"></i>Text</button>
-      <button class="btn" data-tool="whiteout"><i class="fa-solid fa-eraser"></i>Mask</button>
-    </div>
-
-    <div class="tool-group" style="flex-direction:row; padding:0 8px;">
-      <div style="display:flex; flex-direction:column; gap:4px;">
-        <div style="display:flex; gap:4px;">
-          <select id="font-family" style="width:120px;">
-            <option value="BankCourier">Bank Courier</option>
-            <option value="Helvetica">Helvetica</option>
-            <option value="Times">Times Roman</option>
-          </select>
-          <input type="number" id="font-size" value="12" style="width:50px;">
-        </div>
-        <div style="display:flex; gap:4px; justify-content:center;">
-          <button class="btn-icon" id="btn-bold" title="Bold"><i class="fa-solid fa-bold"></i></button>
-          <button class="btn-icon" id="btn-delete" title="Delete Selected" style="color:#ef4444;"><i class="fa-solid fa-trash"></i></button>
-        </div>
-      </div>
-    </div>
+<div class="ribbon">
+  <h2 style="color:#0f172a; margin-right:20px;">ALTA</h2>
+  <button class="btn" onclick="document.getElementById('file-in').click()"><i class="fa-regular fa-folder-open"></i>Open</button>
+  <button class="btn" id="btn-save" disabled onclick="savePDF()"><i class="fa-regular fa-floppy-disk"></i>Save</button>
+  <div style="width:1px; height:50px; background:#ddd;"></div>
+  <button class="btn active" id="tool-select" onclick="setTool('select')"><i class="fa-solid fa-arrow-pointer"></i>Select</button>
+  <button class="btn" id="tool-text" onclick="setTool('text')"><i class="fa-solid fa-font"></i>Text</button>
+  <button class="btn" id="tool-mask" onclick="setTool('mask')"><i class="fa-solid fa-eraser"></i>Erase</button>
+  
+  <div style="margin-left:auto; display:flex; gap:10px;">
+    <select id="font-fam" style="height:30px;"><option value="BankCourier">Bank Courier</option><option value="Helvetica">Helvetica</option></select>
+    <input type="number" id="font-sz" value="12" style="width:50px; height:30px;">
+    <button class="btn" style="height:30px; width:30px; min-width:30px;" id="btn-bold" onclick="toggleBold()">B</button>
+    <button class="btn" style="height:30px; width:30px; min-width:30px; color:red;" onclick="deleteItem()"><i class="fa-solid fa-trash"></i></button>
   </div>
+</div>
 
-  <div id="workspace">
-    <div id="canvas-container">
-      <canvas id="pdf-layer"></canvas>
-      <canvas id="ui-layer"></canvas>
-      <textarea id="inline-editor"></textarea>
-    </div>
+<div id="workspace">
+  <div id="canvas-wrap">
+    <canvas id="pdf-layer"></canvas>
+    <canvas id="ui-layer"></canvas>
+    <textarea id="editor"></textarea>
   </div>
+</div>
 
-  <div id="upload-overlay">
-    <h1 style="color:#0f172a; margin:0;">Load Document</h1>
-    <p style="color:#64748b;">Bank Grade Logic • Secure Processing</p>
+<div id="loader">
+  <h1>Bank Grade Editor</h1>
+  <button class="big-btn" onclick="document.getElementById('file-in').click()">Select PDF</button>
+  <p style="margin-top:20px; color:#666;">v5.0 Diagnostic</p>
+</div>
+
+<input type="file" id="file-in" accept="application/pdf" style="display:none" onchange="handleFile(this.files[0])">
+
+<script>
+// --- CONFIG ---
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+const App = { 
+  pdfData: null, pdfDoc: null, pdfLib: null, 
+  scale: 1.5, page: 1, tool: 'select', 
+  items: [], sel: null, edit: false 
+};
+
+const pdfC = document.getElementById('pdf-layer');
+const uiC = document
